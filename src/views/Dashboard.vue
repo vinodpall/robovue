@@ -2,7 +2,7 @@
   <div class="dashboard">
     <div class="header">
       <div class="logo-container">
-        <img src="../assets/logo.png" alt="公司logo" class="logo">
+        <img src="../assets/logo.svg" alt="公司logo" class="logo">
       </div>
       <div class="title">
         <div class="main-title">嘉定区具身智能机器人训练场</div>
@@ -17,13 +17,13 @@
       </div>
       <div class="icons">
         <div class="icon">
-          <img src="../assets/tool_1.png" alt="工具1">
+          <img src="../assets/tool_full.svg" alt="全屏">
         </div>
         <div class="icon">
-          <img src="../assets/tool_2.png" alt="工具2">
+          <img src="../assets/tool_set.svg" alt="设置">
         </div>
         <div class="icon">
-          <img src="../assets/tool_3.png" alt="工具3">
+          <img src="../assets/tool_off.png" alt="关机">
         </div>
       </div>
     </div>
@@ -32,36 +32,52 @@
       <div class="chart-row">
         <div class="chart-container">
           <div class="chart-item">
-            <h3>数据分布</h3>
-            <div class="description">爱训机器人种类分析</div>
-            <div class="pie-charts">
-              <div ref="pieChart1" class="pie-chart"></div>
-              <div ref="pieChart2" class="pie-chart"></div>
-            </div>
-            <div class="legend">
-              <div class="legend-item">
-                <span class="legend-color industrial"></span>
-                <span>工业机器人</span>
-                <span class="legend-value">40%</span>
+            <h3>受训机器人种类分析</h3>
+            <div class="pie-charts-container">
+              <div class="pie-section">
+                <div class="pie-title">累计受训机器人种类分布</div>
+                <div ref="pieChart1" class="pie-chart"></div>
+                <div class="pie-legend">
+                  <div class="legend-item">
+                    <span class="legend-text">工业级机器人</span>
+                    <span class="legend-value">40%</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-text">特种机器人</span>
+                    <span class="legend-value">30%</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-text">服务机器人</span>
+                    <span class="legend-value">30%</span>
+                  </div>
+                </div>
               </div>
-              <div class="legend-item">
-                <span class="legend-color characteristic"></span>
-                <span>特种机器人</span>
-                <span class="legend-value">30%</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color service"></span>
-                <span>服务机器人</span>
-                <span class="legend-value">30%</span>
+              <div class="pie-section">
+                <div class="pie-title">3月内受训机器人种类分布</div>
+                <div ref="pieChart2" class="pie-chart"></div>
+                <div class="pie-legend">
+                  <div class="legend-item">
+                    <span class="legend-text">工业级机器人</span>
+                    <span class="legend-value">45%</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-text">特种机器人</span>
+                    <span class="legend-value">25%</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-text">服务机器人</span>
+                    <span class="legend-value">30%</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <div class="chart-item">
-            <h3>爱训机器人数量分析</h3>
+            <h3>受训机器人场景分布</h3>
             <div ref="barChart" class="chart"></div>
           </div>
           <div class="chart-item">
-            <h3>爱训机器人技能分析</h3>
+            <h3>受训机器人技能分析</h3>
             <div class="stats-container">
               <div class="stat-item">
                 <div class="stat-label">操作性能</div>
@@ -85,10 +101,9 @@
       </div>
       <!-- 第三行 -->
       <div class="chart-row">
-        <div class="chart-container">
+        <div class="chart-container second-row">
           <div class="chart-item">
-            <h3>爱训机器人A状态分析</h3>
-            <div class="description">在线率: 97%</div>
+            <h3>受训机器人实时状态</h3>
             <div class="pie-charts">
               <div ref="pieChart3" class="pie-chart"></div>
             </div>
@@ -110,15 +125,9 @@
               </div>
             </div>
           </div>
-          <div class="chart-item">
-            <h3>爱训机器人A使用率</h3>
-            <div class="description">7 天使用 · 均日</div>
+          <div class="chart-item wide-item">
+            <h3>具身智能入库数据</h3>
             <div ref="lineChart1" class="chart"></div>
-          </div>
-          <div class="chart-item">
-            <h3>在线人数统计</h3>
-            <div class="description">在线率对比</div>
-            <div ref="barChart2" class="chart"></div>
           </div>
         </div>
       </div>
@@ -126,8 +135,7 @@
       <div class="chart-row">
         <div class="chart-container">
           <div class="chart-item">
-            <h3>爱训机器人A信息</h3>
-            <div class="description">IDR状态: 7AFC</div>
+            <h3>受训机器人企业</h3>
             <div class="text-content">
               <p>上海海事大学信息科学研究所</p>
               <p>上海海事大学技能技术研究所</p>
@@ -138,12 +146,11 @@
             </div>
           </div>
           <div class="chart-item">
-            <h3>爱训机器人寿命</h3>
+            <h3>训练场荣誉</h3>
             <div ref="lineChart2" class="chart"></div>
           </div>
           <div class="chart-item">
-            <h3>人数统计</h3>
-            <div class="description">属性: 50  总数: 200</div>
+            <h3>入场人数统计</h3>
             <div ref="lineChart3" class="chart"></div>
           </div>
         </div>
@@ -165,6 +172,188 @@ const lineChart1 = ref(null)
 const lineChart2 = ref(null)
 const lineChart3 = ref(null)
 
+onMounted(() => {
+  // 初始化时间显示
+  updateTime()
+  // 每分钟更新一次时间
+  setInterval(updateTime, 60000)
+
+  // 初始化第一个饼图
+  const chart1 = echarts.init(pieChart1.value)
+  chart1.setOption({
+    tooltip: {
+      trigger: 'item'
+    },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      label: {
+        show: false
+      },
+      data: [
+        { value: 40, name: '工业级机器人' },
+        { value: 30, name: '特种机器人' },
+        { value: 30, name: '服务机器人' }
+      ],
+      color: ['#4992FF', '#7CFFB2', '#FDDD60']
+    }]
+  })
+
+  // 初始化第二个饼图
+  const chart2 = echarts.init(pieChart2.value)
+  chart2.setOption({
+    tooltip: {
+      trigger: 'item'
+    },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      label: {
+        show: false
+      },
+      data: [
+        { value: 45, name: '工业级机器人' },
+        { value: 25, name: '特种机器人' },
+        { value: 30, name: '服务机器人' }
+      ],
+      color: ['#4992FF', '#7CFFB2', '#FDDD60']
+    }]
+  })
+
+  // 初始化柱状图
+  const chart3 = echarts.init(barChart.value)
+  chart3.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      top: '10%',
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['工业制造', '医疗服务', '教育培训', '物流运输', '其他'],
+      axisLine: {
+        lineStyle: {
+          color: '#fff'
+        }
+      },
+      axisLabel: {
+        color: '#fff'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: {
+        lineStyle: {
+          color: '#fff'
+        }
+      },
+      axisLabel: {
+        color: '#fff'
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.1)'
+        }
+      }
+    },
+    series: [{
+      data: [120, 200, 150, 80, 70],
+      type: 'bar',
+      itemStyle: {
+        color: '#4992FF'
+      }
+    }]
+  })
+
+  // 初始化宽框图表
+  const chart4 = echarts.init(lineChart1.value)
+  chart4.setOption({
+    tooltip: {
+      trigger: 'axis'
+    },
+    grid: {
+      top: '10%',
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
+      axisLine: {
+        lineStyle: {
+          color: '#fff'
+        }
+      },
+      axisLabel: {
+        color: '#fff'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: {
+        lineStyle: {
+          color: '#fff'
+        }
+      },
+      axisLabel: {
+        color: '#fff'
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.1)'
+        }
+      }
+    },
+    series: [{
+      data: [820, 932, 901, 934, 1290, 1330, 1320],
+      type: 'line',
+      smooth: true,
+      itemStyle: {
+        color: '#0EE4F9'
+      },
+      lineStyle: {
+        color: '#0EE4F9'
+      },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [{
+            offset: 0,
+            color: 'rgba(14,228,249,0.3)'
+          }, {
+            offset: 1,
+            color: 'rgba(14,228,249,0)'
+          }]
+        }
+      }
+    }]
+  })
+
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    chart1.resize()
+    chart2.resize()
+    chart3.resize()
+    chart4.resize()
+  })
+})
+
 // 添加时间更新函数
 const updateTime = () => {
   const now = new Date()
@@ -183,312 +372,6 @@ const updateTime = () => {
     dateEl.innerHTML = `<div>${weekday}</div><div>${year}年${month}月${day}日</div>`
   }
 }
-
-onMounted(() => {
-  // 初始化时间显示
-  updateTime()
-  // 每分钟更新一次时间
-  setInterval(updateTime, 60000)
-  
-  setTimeout(() => {
-    // 第二行 - 环形图1: 累计爱训机器人种类分析
-    const myPieChart1 = echarts.init(pieChart1.value)
-    myPieChart1.setOption({
-      title: {
-        text: '累计爱训机器人\n种类分析',
-        left: 'center',
-        top: 'center',
-        textStyle: {
-          color: '#fff',
-          fontSize: 12,
-          lineHeight: 16
-        }
-      },
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['50%', '70%'],
-        data: [
-          { value: 40, name: '工业机器人', itemStyle: { color: '#5470c6' } },
-          { value: 30, name: '特种机器人', itemStyle: { color: '#91cc75' } },
-          { value: 30, name: '服务机器人', itemStyle: { color: '#fac858' } }
-        ],
-        label: { show: false },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }]
-    })
-
-    // 第二行 - 环形图2: 3月内爱训机器人种类分析
-    const myPieChart2 = echarts.init(pieChart2.value)
-    myPieChart2.setOption({
-      title: {
-        text: '3月内爱训机器人\n种类分析',
-        left: 'center',
-        top: 'center',
-        textStyle: {
-          color: '#fff',
-          fontSize: 12,
-          lineHeight: 16
-        }
-      },
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['50%', '70%'],
-        data: [
-          { value: 40, name: '工业机器人', itemStyle: { color: '#5470c6' } },
-          { value: 30, name: '特种机器人', itemStyle: { color: '#91cc75' } },
-          { value: 30, name: '服务机器人', itemStyle: { color: '#fac858' } }
-        ],
-        label: { show: false },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }]
-    })
-
-    // 第二行 - 柱状图: 爱训机器人数量分析
-    const myBarChart = echarts.init(barChart.value)
-    myBarChart.setOption({
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: {
-        type: 'category',
-        data: [
-          '工业一类场景',
-          '工业二类场景',
-          '工业三类场景',
-          '个人技能训练场景',
-          '医疗生活场景',
-          '医疗服务场景',
-          '教育评测场景',
-          '次件部对外场景',
-          '低空水域场景'
-        ],
-        axisLabel: {
-          color: '#fff',
-          rotate: 45,
-          fontSize: 10,
-          interval: 0
-        }
-      },
-      yAxis: {
-        type: 'value',
-        name: '机器人\n数量',
-        nameTextStyle: { color: '#fff', padding: [0, 0, 0, -30], fontSize: 10 },
-        axisLabel: { color: '#fff', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-      },
-      series: [{
-        name: '机器人数量',
-        type: 'bar',
-        data: [280, 236, 217, 217, 190, 149, 123, 101, 75, 53],
-        barWidth: '50%',
-        itemStyle: { color: '#5470c6' },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#fff',
-          fontSize: 10
-        }
-      }]
-    })
-
-    // 第三行 - 环形图: 在线率
-    const myPieChart3 = echarts.init(pieChart3.value)
-    myPieChart3.setOption({
-      title: {
-        text: '总览\n60',
-        left: 'center',
-        top: 'center',
-        textStyle: {
-          color: '#fff',
-          fontSize: 12,
-          lineHeight: 16
-        }
-      },
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['50%', '70%'],
-        data: [
-          { value: 60, name: '在线', itemStyle: { color: '#5470c6' } },
-          { value: 30, name: '离线', itemStyle: { color: '#91cc75' } },
-          { value: 15, name: '故障', itemStyle: { color: '#fac858' } }
-        ],
-        label: { show: false },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }]
-    })
-
-    // 第三行 - 折线图: 7天使用率
-    const myLineChart1 = echarts.init(lineChart1.value)
-    myLineChart1.setOption({
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: ['2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06', '2023-07'],
-        axisLabel: { color: '#fff', fontSize: 10 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#fff', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-      },
-      series: [
-        {
-          name: '使用率',
-          type: 'line',
-          data: [0.65, 0.70, 0.55, 0.80, 0.60, 0.75, 0.68],
-          itemStyle: { color: '#fac858' },
-          lineStyle: { color: '#fac858' }
-        },
-        {
-          name: '均日',
-          type: 'line',
-          data: [0.60, 0.62, 0.58, 0.64, 0.59, 0.63, 0.61],
-          itemStyle: { color: '#91cc75' },
-          lineStyle: { color: '#91cc75' }
-        }
-      ]
-    })
-
-    // 第三行 - 柱状图: 在线率对比
-    const myBarChart2 = echarts.init(barChart2.value)
-    myBarChart2.setOption({
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: {
-        type: 'category',
-        data: Array.from({ length: 12 }, (_, i) => `类别${i + 1}`),
-        axisLabel: { color: '#fff', rotate: 45, fontSize: 10, interval: 0 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#fff', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-      },
-      series: [
-        {
-          name: '在线率',
-          type: 'bar',
-          data: [2000, 1800, 1600, 1500, 1400, 1300, 1200, 1100, 1000, 900, 800, 700],
-          barWidth: '50%',
-          itemStyle: {
-            color: (params) => {
-              const colors = ['#fac858', '#91cc75', '#5470c6', '#ff6f61', '#a0d911', '#40c4ff', '#ab47bc', '#ffca28', '#26c6da', '#d4e157', '#ff8a65', '#b0bec5']
-              return colors[params.dataIndex % colors.length]
-            }
-          }
-        },
-        {
-          name: '趋势',
-          type: 'line',
-          data: [700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800],
-          itemStyle: { color: '#ff6f61' },
-          lineStyle: { color: '#ff6f61' }
-        }
-      ]
-    })
-
-    // 第四行 - 折线图: 机器人寿命
-    const myLineChart2 = echarts.init(lineChart2.value)
-    myLineChart2.setOption({
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: ['2023-01', '2023-02', '2023-03', '2023-04', '2023-05'],
-        axisLabel: { color: '#fff', fontSize: 10 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#fff', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-      },
-      series: [
-        {
-          name: '寿命',
-          type: 'line',
-          data: [0.70, 0.65, 0.80, 0.60, 0.75],
-          itemStyle: { color: '#fac858' },
-          lineStyle: { color: '#fac858' }
-        },
-        {
-          name: '寿命2',
-          type: 'line',
-          data: [0.60, 0.55, 0.70, 0.50, 0.65],
-          itemStyle: { color: '#91cc75' },
-          lineStyle: { color: '#91cc75' }
-        },
-        {
-          name: '寿命3',
-          type: 'line',
-          data: [0.50, 0.45, 0.60, 0.40, 0.55],
-          itemStyle: { color: '#5470c6' },
-          lineStyle: { color: '#5470c6' }
-        }
-      ]
-    })
-
-    // 第四行 - 折线图: 人数统计
-    const myLineChart3 = echarts.init(lineChart3.value)
-    myLineChart3.setOption({
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: ['11/20', '11/22', '11/24', '11/26', '11/28'],
-        axisLabel: { color: '#fff', fontSize: 10 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { color: '#fff', fontSize: 10 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }
-      },
-      series: [
-        {
-          name: '人数',
-          type: 'line',
-          data: [100, 150, 127, 80, 120],
-          itemStyle: { color: '#5470c6' },
-          lineStyle: { color: '#5470c6' }
-        },
-        {
-          name: '人数2',
-          type: 'line',
-          data: [80, 120, 100, 60, 90],
-          itemStyle: { color: '#91cc75' },
-          lineStyle: { color: '#91cc75' }
-        }
-      ]
-    })
-
-    // 响应式调整
-    window.addEventListener('resize', () => {
-      myPieChart1.resize()
-      myPieChart2.resize()
-      myPieChart3.resize()
-      myBarChart.resize()
-      myBarChart2.resize()
-      myLineChart1.resize()
-      myLineChart2.resize()
-      myLineChart3.resize()
-    })
-  }, 100)
-})
 </script>
 
 <style scoped>
@@ -503,25 +386,31 @@ html, body {
 .dashboard {
   width: 1600px;
   height: 1200px;
-  background: rgb(7, 17, 67);
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  height: 100px;
-  background: rgb(7, 17, 67);
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  background: #0A184B;
   position: relative;
 }
 
-.logo-container {
+.header {
+  width: 100%;
+  height: 91px;
+  background: url('../assets/title_bg.png') no-repeat;
+  background-size: 1600px 91px;
   display: flex;
   align-items: center;
-  width: 240px;
+  padding: 0 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.logo-container {
+  border-width: 0px;
+  position: absolute;
+  left: 25px;
+  top: 15px;
+  display: flex;
+  align-items: center;
+  width: 244px;
   height: 80px;
 }
 
@@ -535,10 +424,14 @@ html, body {
 .title {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 30%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  color: #fff;
+  font-size: 24px;
+  white-space: nowrap;
 }
 
 .main-title {
@@ -563,116 +456,212 @@ html, body {
 }
 
 .datetime {
+  position: absolute;
+  right: 150px;
+  top: 55%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  margin-left: auto;
-  margin-right: 34px;
+  gap: 15px;
   color: #fff;
 }
 
 .time {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
-  color: #fff;
-  margin-right: 40px;
-  font-family: '微软雅黑';
 }
 
 .date {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  font-size: 16px;
-  color: #fff;
-  font-family: '微软雅黑';
-}
-
-.date > div {
+  font-weight: bold;
+  font-family: 'Arial Negreta', 'Arial Normal', 'Arial';
+  font-size: 14px;
   line-height: 1.5;
 }
 
+.date div {
+  text-align: left;
+  width: 100%;
+}
+
 .icons {
+  position: absolute;
+  right: 25px;
+  top: 15px;
   display: flex;
-  gap: 10px;
-  margin-left: 0;
+  gap: 5px;
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 19px;
+  height: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.icon:hover {
-  background-color: rgba(255,255,255,0.1);
 }
 
 .icon img {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 17px;
   object-fit: contain;
 }
 
 .content {
-  padding: 20px;
-  height: 1100px; /* 1200px - 100px (header) */
-  display: flex;
-  flex-direction: column;
+  padding-top: 110px;
 }
 
 .chart-row {
-  height: 367px; /* 1100px / 3 ≈ 366.67px */
+  padding: 0;
   margin-bottom: 20px;
-}
-
-.chart-row:last-child {
-  margin-bottom: 0;
 }
 
 .chart-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  width: 100%;
-  height: 100%;
+  grid-template-columns: repeat(3, 518px);
+  gap: 10px;
+  justify-content: center;
 }
 
 .chart-item {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  position: relative;
+  width: 518px;
+  height: 341px;
   padding: 10px;
+  color: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.chart-item:nth-child(1) {
+  background-image: url('../assets/frame_1.png');
+}
+
+.chart-item:nth-child(2) {
+  background-image: url('../assets/frame_2.png');
+}
+
+.chart-item:nth-child(3) {
+  background-image: url('../assets/frame_3.png');
+}
+
+.chart-item h3 {
+  font-size: 21px;
+  color: #0EE4F9;
+  margin: 20px 0 25px 30px;
+  text-align: left;
+  line-height: 1;
+}
+
+.pie-charts-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  height: calc(100% - 61px);
+  padding: 0 20px;
+  margin-top: -20px;
+}
+
+.pie-section {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  max-width: 220px;
 }
 
-.description {
-  color: #fff;
-  font-size: 14px;
-  text-align: center;
+.pie-title {
+  color: #F9F7F7;
+  font-size: 9px;
   margin-bottom: 5px;
-}
-
-.pie-charts {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-  margin-bottom: 10px;
+  text-align: center;
+  font-family: '微软雅黑 Bold', '微软雅黑 Regular', '微软雅黑';
+  font-style: normal;
+  font-weight: bolder;
 }
 
 .pie-chart {
-  width: 50%;
-  height: 150px;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 5px;
+  margin-top: -10px;
+  position: relative;
+  z-index: 1;
+}
+
+.pie-section:nth-child(2) .pie-legend {
+  width: 100%;
+  padding-left: 10px;
+  margin-top: -8px;
+  position: relative;
+  z-index: 2;
+}
+
+.pie-section:nth-child(2) .legend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #F1F2F2;
+  font-size: 9px;
+  margin-bottom: 6px;
+  padding: 7px 5px;
+  gap: 0px;
+  margin-left: 12px;
+  margin-top: -10px;
+  width: 100%;
+}
+
+.pie-section:nth-child(2) .legend-text {
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 2px;
+}
+
+.pie-section:nth-child(2) .legend-value {
+  color: #0EE4F9;
+  margin-left: -20px;
+  position: relative;
+  left: -10px;
+  transform: translateX(-20px);
+}
+
+.pie-legend {
+  width: 100%;
+  padding-left: 25px;
+  margin-top: -8px;
+  position: relative;
+  z-index: 2;
+}
+
+.legend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #F1F2F2;
+  font-size: 9px;
+  margin-bottom: 6px;
+  padding: 7px 5px;
+  gap: 0px;
+  margin-left: 12px;
+  margin-top: -10px;
+}
+
+.legend-text {
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 2px;
+}
+
+.legend-value {
+  color: #0EE4F9;
+  margin-left: 2px;
 }
 
 .chart {
   width: 100%;
-  height: 200px;
-  flex: 1;
+  height: calc(100% - 61px);
+  min-height: 240px;
 }
 
 .legend {
@@ -680,14 +669,6 @@ html, body {
   flex-direction: column;
   gap: 5px;
   margin-top: 5px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #fff;
-  font-size: 12px;
 }
 
 .legend-color {
@@ -722,10 +703,11 @@ html, body {
 }
 
 .stats-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  flex: 1;
+  height: calc(100% - 61px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 20px;
 }
 
 .stat-item {
@@ -749,16 +731,59 @@ html, body {
 }
 
 .text-content {
-  color: #fff;
-  font-size: 12px;
-  line-height: 1.4;
-  flex: 1;
-  padding: 5px;
+  height: calc(100% - 61px);
+  padding: 20px;
+  overflow-y: auto;
 }
 
-h3 {
-  color: #fff;
-  margin-bottom: 5px;
-  font-size: 16px;
+.text-content p {
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 第二行的frame背景 */
+.chart-row:nth-child(1) .chart-item:nth-child(1) {
+  background-image: url('../assets/frame_1.png');
+}
+
+.chart-row:nth-child(1) .chart-item:nth-child(2) {
+  background-image: url('../assets/frame_2.png');
+}
+
+.chart-row:nth-child(1) .chart-item:nth-child(3) {
+  background-image: url('../assets/frame_3.png');
+}
+
+/* 第三行的frame背景 */
+.chart-row:nth-child(2) .chart-container {
+  display: grid;
+  grid-template-columns: 518px 1055px;
+  gap: 10px;
+  justify-content: center;
+}
+
+.chart-row:nth-child(2) .chart-item:nth-child(1) {
+  background-image: url('../assets/frame_4.png');
+  width: 518px;
+  height: 341px;
+}
+
+.chart-row:nth-child(2) .chart-item:nth-child(2) {
+  background-image: url('../assets/frame_5.png');
+  width: 1055px;
+  height: 341px;
+}
+
+/* 第四行的frame背景 */
+.chart-row:nth-child(3) .chart-item:nth-child(1) {
+  background-image: url('../assets/frame_6.png');
+}
+
+.chart-row:nth-child(3) .chart-item:nth-child(2) {
+  background-image: url('../assets/frame_7.png');
+}
+
+.chart-row:nth-child(3) .chart-item:nth-child(3) {
+  background-image: url('../assets/frame_8.png');
 }
 </style>
