@@ -77,23 +77,23 @@
             <div ref="barChart" class="chart"></div>
           </div>
           <div class="chart-item">
-            <h3>受训机器人技能分析</h3>
+            <h3>受训机器人技能分布</h3>
             <div class="stats-container">
               <div class="stat-item">
                 <div class="stat-label">操作性能</div>
-                <div class="stat-value">012</div>
+                <div class="stat-value">012<span class="unit">台</span></div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">移动性能</div>
-                <div class="stat-value">010</div>
+                <div class="stat-value">010<span class="unit">台</span></div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">交互性能</div>
-                <div class="stat-value">016</div>
+                <div class="stat-value">016<span class="unit">台</span></div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">其他</div>
-                <div class="stat-value">031</div>
+                <div class="stat-value">031<span class="unit">台</span></div>
               </div>
             </div>
           </div>
@@ -127,7 +127,23 @@
           </div>
           <div class="chart-item wide-item">
             <h3>具身智能入库数据</h3>
-            <div ref="lineChart1" class="chart"></div>
+            <div class="data-container">
+              <div class="data-list">
+                <div class="list-header">
+                  <span>机器人名称</span>
+                  <span>数据类型</span>
+                  <span>采集量（条）</span>
+                </div>
+                <div class="list-content">
+                  <div class="list-item" v-for="(item, index) in displayData" :key="index">
+                    <span>{{ item.name }}</span>
+                    <span>{{ item.type }}</span>
+                    <span>{{ item.value }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="data-chart" ref="lineChart1"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -172,186 +188,264 @@ const lineChart1 = ref(null)
 const lineChart2 = ref(null)
 const lineChart3 = ref(null)
 
+// 修改数据为6条
+const robotData = [
+  { name: '仿真机器人', type: '运动控制数据', value: '1.3W' },
+  { name: '交互机器人', type: '交互行为数据', value: '16.1K' },
+  { name: '管道机器人', type: '几何形变数据', value: '17.3K' },
+  { name: '机器狗', type: '关节状态数据', value: '19.1K' },
+  { name: '除草机器人', type: '导航定位数据', value: '13.1K' },
+  { name: '多模态机器人', type: '多模态感知数据', value: '0.2K' },
+  { name: '仿真机器人2', type: '运动控制数据', value: '1.5W' },
+  { name: '交互机器人2', type: '交互行为数据', value: '18.1K' }
+]
+
+// 复制一份数据用于无缝滚动
+const displayData = ref([...robotData, ...robotData])
+
 onMounted(() => {
   // 初始化时间显示
   updateTime()
   // 每分钟更新一次时间
   setInterval(updateTime, 60000)
+  
+  // 修改滚动逻辑
+  const scrollList = () => {
+    const listContent = document.querySelector('.list-content')
+    if (!listContent) return
+    
+    let scrollTop = 0  // 从0开始滚动
+    const scrollStep = () => {
+      scrollTop += 0.1  // 进一步降低滚动速度
+      if (scrollTop >= 34) {  // 当滚动到一行高度时
+        scrollTop = 0  // 重置到顶部
+        // 将第一条数据移到末尾
+        displayData.value.push(displayData.value[0])
+        displayData.value.shift()
+      }
+      listContent.style.transform = `translateY(-${scrollTop}px)`
+      requestAnimationFrame(scrollStep)
+    }
+    requestAnimationFrame(scrollStep)
+  }
 
-  // 初始化第一个饼图
-  const chart1 = echarts.init(pieChart1.value)
-  chart1.setOption({
-    tooltip: {
-      trigger: 'item'
-    },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '70%'],
-      avoidLabelOverlap: false,
-      label: {
-        show: false
-      },
-      data: [
-        { value: 40, name: '工业级机器人' },
-        { value: 30, name: '特种机器人' },
-        { value: 30, name: '服务机器人' }
-      ],
-      color: ['#4992FF', '#7CFFB2', '#FDDD60']
-    }]
-  })
+  setTimeout(scrollList, 1000)  // 延迟1秒开始滚动
 
-  // 初始化第二个饼图
-  const chart2 = echarts.init(pieChart2.value)
-  chart2.setOption({
-    tooltip: {
-      trigger: 'item'
-    },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '70%'],
-      avoidLabelOverlap: false,
-      label: {
-        show: false
+  setTimeout(() => {
+    // 初始化第一个饼图
+    const chart1 = echarts.init(pieChart1.value, null, {
+      devicePixelRatio: window.devicePixelRatio * 2
+    })
+    chart1.setOption({
+      tooltip: {
+        trigger: 'item'
       },
-      data: [
-        { value: 45, name: '工业级机器人' },
-        { value: 25, name: '特种机器人' },
-        { value: 30, name: '服务机器人' }
-      ],
-      color: ['#4992FF', '#7CFFB2', '#FDDD60']
-    }]
-  })
+      series: [{
+        type: 'pie',
+        radius: ['50%', '75%'],
+        avoidLabelOverlap: false,
+        label: {
+          show: false
+        },
+        data: [
+          { value: 40, name: '工业级机器人' },
+          { value: 30, name: '特种机器人' },
+          { value: 30, name: '服务机器人' }
+        ],
+        color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
+      }]
+    })
 
-  // 初始化柱状图
-  const chart3 = echarts.init(barChart.value)
-  chart3.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    grid: {
-      top: '10%',
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: ['工业制造', '医疗服务', '教育培训', '物流运输', '其他'],
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
+    // 初始化第二个饼图
+    const chart2 = echarts.init(pieChart2.value, null, {
+      devicePixelRatio: window.devicePixelRatio * 2
+    })
+    chart2.setOption({
+      tooltip: {
+        trigger: 'item'
       },
-      axisLabel: {
-        color: '#fff'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
-        }
-      },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255,255,255,0.1)'
-        }
-      }
-    },
-    series: [{
-      data: [120, 200, 150, 80, 70],
-      type: 'bar',
-      itemStyle: {
-        color: '#4992FF'
-      }
-    }]
-  })
+      series: [{
+        type: 'pie',
+        radius: ['50%', '75%'],
+        avoidLabelOverlap: false,
+        label: {
+          show: false
+        },
+        data: [
+          { value: 45, name: '工业级机器人' },
+          { value: 25, name: '特种机器人' },
+          { value: 30, name: '服务机器人' }
+        ],
+        color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
+      }]
+    })
 
-  // 初始化宽框图表
-  const chart4 = echarts.init(lineChart1.value)
-  chart4.setOption({
-    tooltip: {
-      trigger: 'axis'
-    },
-    grid: {
-      top: '10%',
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
+    // 初始化柱状图
+    const myBarChart = echarts.init(barChart.value, null, {
+      devicePixelRatio: window.devicePixelRatio * 2
+    })
+    myBarChart.setOption({
+      grid: {
+        left: '6%',
+        right: '5%',
+        bottom: '8%',
+        top: '2%',
+        containLabel: true
+      },
+      tooltip: { 
+        trigger: 'axis',
+        axisPointer: { 
+          type: 'shadow' 
         }
       },
-      axisLabel: {
-        color: '#fff'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: '#fff'
+      xAxis: {
+        type: 'category',
+        data: [
+          '工业一类场景',
+          '工业二类场景',
+          '工业三类场景',
+          '公共商业场景',
+          '居家生活场景',
+          '医疗康养场景',
+          '教育科研场景',
+          '市政运维场景',
+          '农林野外场景',
+          '低空水域场景'
+        ],
+        axisLabel: {
+          color: '#FFFFFF',
+          interval: 0,
+          fontSize: 6,
+          margin: 12,
+          fontWeight: 'bold'
+        },
+        axisTick: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255,255,255,0.4)'
+          }
         }
       },
-      axisLabel: {
-        color: '#fff'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255,255,255,0.1)'
+      yAxis: {
+        type: 'value',
+        name: '受训机器人数量（台）',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameRotate: 90,
+        nameTextStyle: {
+          color: '#FFFFFF',
+          fontSize: 9,
+          fontWeight: 'bold',
+          padding: [0, 0, 0, -15]
+        },
+        max: 300,
+        interval: 50,
+        axisLabel: {
+          color: '#FFFFFF',
+          fontSize: 10,
+          fontWeight: 'bold'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255,255,255,0.4)'
+          }
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: 'rgba(255,255,255,0.4)'
+          }
         }
-      }
-    },
-    series: [{
-      data: [820, 932, 901, 934, 1290, 1330, 1320],
-      type: 'line',
-      smooth: true,
-      itemStyle: {
-        color: '#0EE4F9'
       },
-      lineStyle: {
-        color: '#0EE4F9'
-      },
-      areaStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [{
-            offset: 0,
-            color: 'rgba(14,228,249,0.3)'
-          }, {
-            offset: 1,
-            color: 'rgba(14,228,249,0)'
-          }]
+      series: [{
+        name: '机器人数量',
+        type: 'bar',
+        barWidth: '35%',
+        data: [
+          {value: 280, itemStyle: {color: '#2B85E4'}},
+          {value: 236, itemStyle: {color: '#308CE8'}},
+          {value: 217, itemStyle: {color: '#3593EC'}},
+          {value: 217, itemStyle: {color: '#3A9AF0'}},
+          {value: 190, itemStyle: {color: '#3FA1F4'}},
+          {value: 149, itemStyle: {color: '#44A8F8'}},
+          {value: 123, itemStyle: {color: '#49AFFC'}},
+          {value: 101, itemStyle: {color: '#4EB6FF'}},
+          {value: 75, itemStyle: {color: '#53BDFF'}},
+          {value: 53, itemStyle: {color: '#58C4FF'}}
+        ],
+        label: {
+          show: true,
+          position: 'top',
+          color: '#FFFFFF',
+          fontSize: 10,
+          fontWeight: 'bold',
+          formatter: '{c}台'
+        },
+        itemStyle: {
+          borderRadius: [4, 4, 0, 0]
         }
-      }
-    }]
-  })
+      }]
+    })
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
-    chart1.resize()
-    chart2.resize()
-    chart3.resize()
-    chart4.resize()
-  })
+    // 初始化折线图
+    const chart = echarts.init(lineChart1.value, null, {
+      devicePixelRatio: window.devicePixelRatio * 2
+    })
+    chart.setOption({
+      grid: {
+        top: '10%',
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: robotData.map(item => item.name),
+        axisLabel: {
+          color: '#fff',
+          fontSize: 12,
+          interval: 0,
+          rotate: 45
+        },
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255,255,255,0.3)'
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          color: '#fff',
+          fontSize: 12
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255,255,255,0.1)'
+          }
+        }
+      },
+      series: [{
+        data: [13000, 16100, 17300, 19100, 13100, 200, 13000],
+        type: 'bar',
+        barWidth: '40%',
+        itemStyle: {
+          color: '#409EFF'
+        }
+      }]
+    })
+
+    // 响应式调整
+    window.addEventListener('resize', () => {
+      chart1.resize({ animation: { duration: 300 } })
+      chart2.resize({ animation: { duration: 300 } })
+      myBarChart.resize({ animation: { duration: 300 } })
+      chart.resize({ animation: { duration: 300 } })
+    })
+  }, 100)
 })
 
 // 添加时间更新函数
@@ -703,31 +797,69 @@ html, body {
 }
 
 .stats-container {
-  height: calc(100% - 61px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px 25px;
+  padding: 10px 20px;
+  flex: 1;
+  margin-top: 10px;
 }
 
 .stat-item {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
+  text-align: left;
+}
+
+.stat-item:nth-child(odd) {
+  margin-left: 60px;
+}
+
+.stat-item:nth-child(-n+2) {
+  margin-top: -18px;
+}
+
+.stat-item:nth-child(n+3) {
+  margin-top: -4px;
 }
 
 .stat-label {
-  color: #fff;
+  color: #00FFFF;
   font-size: 14px;
   margin-bottom: 5px;
+  text-align: left;
+}
+
+.stat-item:nth-child(odd) .stat-label {
+  margin-left: -25px;
+  margin-top: 1px;
+  font-weight: bold;
+}
+
+.stat-item:nth-child(even) .stat-label {
+  margin-left: -10px;
+  margin-top: 1px;
+  font-weight: bold;
 }
 
 .stat-value {
-  color: #fff;
-  font-size: 24px;
+  color: #FFFFFF;
+  font-size: 58px;
   font-weight: bold;
-  letter-spacing: 3px;
+  font-family: 'Arial';
+  letter-spacing: 18px;
+  line-height: 1;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 70px;
+}
+
+.unit {
+  font-size: 14px;
+  margin-left: -5px;
+  margin-top: 35px;
+  color: rgba(255, 255, 255, 0.7);
+  display: inline-block;
 }
 
 .text-content {
@@ -785,5 +917,66 @@ html, body {
 
 .chart-row:nth-child(3) .chart-item:nth-child(3) {
   background-image: url('../assets/frame_8.png');
+}
+
+.data-container {
+  display: flex;
+  height: calc(100% - 61px);
+  gap: 20px;
+  padding: 0 10px;
+  margin-top: -5px;
+}
+
+.data-list {
+  width: 405px;
+  display: flex;
+  flex-direction: column;
+  margin-left: 35px;
+}
+
+.list-header {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  height: 34px;
+  padding: 0 15px;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: bold;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  background: #0A184B;
+}
+
+.list-content {
+  flex: none;
+  height: 238px;
+  overflow: hidden;
+  position: relative;
+  margin-top: -34px;
+  padding-top: 34px;  /* 添加上内边距来容纳标题栏 */
+}
+
+.list-item {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  height: 34px;
+  padding: 0 15px;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: bold;
+  align-items: center;
+  border-bottom: 1px solid rgba(59, 160, 232, 1);
+  transition: transform 0.1s linear;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.data-chart {
+  flex: 1;
+  height: 100%;
+  margin-left: 10px;
 }
 </style>
