@@ -395,20 +395,34 @@ onMounted(() => {
     })
     chart.setOption({
       grid: {
-        top: '10%',
+        top: '2%',
         left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
+        right: '20%',
+        bottom: '2%',
+        containLabel: true,
+        height: '85%'
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c}'
+      },
+      legend: {
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+        itemWidth: 6,
+        itemHeight: 6,
+        itemGap: 6,
+        textStyle: {
+          color: '#fff',
+          fontSize: 6
+        }
       },
       xAxis: {
         type: 'category',
-        data: robotData.map(item => item.name),
+        data: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
         axisLabel: {
-          color: '#fff',
-          fontSize: 12,
-          interval: 0,
-          rotate: 45
+          show: false
         },
         axisLine: {
           lineStyle: {
@@ -418,9 +432,12 @@ onMounted(() => {
       },
       yAxis: {
         type: 'value',
+        min: 0,
+        max: 2500,
+        interval: 500,
         axisLabel: {
           color: '#fff',
-          fontSize: 12
+          fontSize: 10
         },
         splitLine: {
           lineStyle: {
@@ -428,14 +445,98 @@ onMounted(() => {
           }
         }
       },
-      series: [{
-        data: [13000, 16100, 17300, 19100, 13100, 200, 13000],
-        type: 'bar',
-        barWidth: '40%',
-        itemStyle: {
-          color: '#409EFF'
+      series: [
+        {
+          name: '运动控制数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 10,
+          data: [2000, null, null, null, null, null, null, null, null, null],
+          itemStyle: { color: '#FF6B6B' }
+        },
+        {
+          name: '交互行为数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 9,
+          data: [null, 1600, null, null, null, null, null, null, null, null],
+          itemStyle: { color: '#4ECDC4' }
+        },
+        {
+          name: '几何形变数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 8,
+          data: [null, null, 2200, null, null, null, null, null, null, null],
+          itemStyle: { color: '#FFD93D' }
+        },
+        {
+          name: '关节状态数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 7,
+          data: [null, null, null, 1800, null, null, null, null, null, null],
+          itemStyle: { color: '#6C5CE7' }
+        },
+        {
+          name: '导航定位数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 6,
+          data: [null, null, null, null, 1500, null, null, null, null, null],
+          itemStyle: { color: '#95A5A6' }
+        },
+        {
+          name: '多模态感知数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 5,
+          data: [null, null, null, null, null, 1200, null, null, null, null],
+          itemStyle: { color: '#2ECC71' }
+        },
+        {
+          name: '视觉感知数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 4,
+          data: [null, null, null, null, null, null, 1900, null, null, null],
+          itemStyle: { color: '#E74C3C' }
+        },
+        {
+          name: '语音交互数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 3,
+          data: [null, null, null, null, null, null, null, 1700, null, null],
+          itemStyle: { color: '#3498DB' }
+        },
+        {
+          name: '力反馈数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 2,
+          data: [null, null, null, null, null, null, null, null, 1400, null],
+          itemStyle: { color: '#9B59B6' }
+        },
+        {
+          name: '环境感知数据',
+          type: 'bar',
+          barGap: '-100%',
+          barWidth: 8,
+          z: 1,
+          data: [null, null, null, null, null, null, null, null, null, 2100],
+          itemStyle: { color: '#F1C40F' }
         }
-      }]
+      ]
     })
 
     // 响应式调整
