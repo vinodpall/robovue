@@ -127,6 +127,10 @@
           </div>
           <div class="chart-item wide-item">
             <h3>具身智能入库数据</h3>
+            <div class="data-stats">
+              <div class="data-stat">总采集：1.2W</div>
+              <div class="data-stat">今日采集：0.3K</div>
+            </div>
             <div class="data-container">
               <div class="data-list">
                 <div class="list-header">
@@ -150,20 +154,44 @@
       <!-- 第四行 -->
       <div class="chart-row">
         <div class="chart-container">
-          <div class="chart-item">
+          <div class="chart-item company-frame">
             <h3>受训机器人企业</h3>
-            <div class="text-content">
-              <p>上海海事大学信息科学研究所</p>
-              <p>上海海事大学技能技术研究所</p>
-              <p>新能源（上海）科技有限责任公司</p>
-              <p>爱训机器人集团股份有限公司</p>
-              <p>检测机器人 A 集团</p>
-              <p>上海海事警察安全规则机器人交通运动</p>
+            <div class="company-title">《历史总数量：97家》</div>
+            <div class="company-list">
+              <div class="company-scroll">
+                <div v-for="(company, index) in visibleCompanies" 
+                     :key="index" 
+                     :class="['company-item', { active: company.isActive }]">
+                  {{ company.name }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="chart-item">
             <h3>训练场荣誉</h3>
-            <div ref="lineChart2" class="chart"></div>
+            <div class="honor-carousel">
+              <div class="carousel-arrow left" @click="prevHonor">
+                <img src="../assets/arrow-left.png" alt="上一个">
+              </div>
+              <div class="carousel-container">
+                <div class="carousel-wrapper">
+                  <div v-for="(honor, index) in visibleHonors" :key="index" 
+                       :class="['honor-item', getItemClass(index)]">
+                    <div class="honor-frame">
+                      <div class="corner-tl"></div>
+                      <div class="corner-tr"></div>
+                      <div class="corner-bl"></div>
+                      <div class="corner-br"></div>
+                      <img :src="honor.image" :alt="honor.title">
+                    </div>
+                    <div v-if="index === 1" class="honor-title">{{ honor.title }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-arrow right" @click="nextHonor">
+                <img src="../assets/arrow-right.png" alt="下一个">
+              </div>
+            </div>
           </div>
           <div class="chart-item">
             <h3>入场人数统计</h3>
@@ -176,8 +204,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
+
+// 导入awards图片
+import awardsImg from '../assets/awards.png'
 
 const pieChart1 = ref(null)
 const pieChart2 = ref(null)
@@ -202,6 +233,81 @@ const robotData = [
 
 // 复制一份数据用于无缝滚动
 const displayData = ref([...robotData, ...robotData])
+
+const companies = [
+  '上海新时达电气股份有限公司',
+  '杭州云深处科技有限公司',
+  '帝蛮神（上海）科技有限公司',
+  '珞石机器人集团股份有限公司',
+  '松灵机器人有限公司',
+  '智能机器人科技有限公司',
+  '未来机器人研究院',
+  '创新智能科技有限公司',
+  '先进机器人系统有限公司',
+  '智慧机器人工程有限公司'
+]
+
+const displayCompanies = ref([])
+const currentIndex = ref(0)
+const scrollPosition = ref(0)
+
+// 计算要显示的5家公司
+const visibleCompanies = computed(() => {
+  const total = companies.length
+  let result = []
+  for (let i = 0; i < 5; i++) {
+    const index = (currentIndex.value + i) % total
+    result.push({
+      name: companies[index],
+      isActive: i === 2 // 中间位置的索引为2
+    })
+  }
+  return result
+})
+
+const honors = ref([
+  {
+    title: '上海市首家全场景机器人综合训练场',
+    image: awardsImg
+  },
+  {
+    title: '机器人训练示范基地',
+    image: awardsImg
+  },
+  {
+    title: '智能机器人创新中心',
+    image: awardsImg
+  }
+])
+
+const currentHonorIndex = ref(0)
+
+const nextHonor = () => {
+  currentHonorIndex.value = (currentHonorIndex.value + 1) % honors.value.length
+}
+
+const prevHonor = () => {
+  currentHonorIndex.value = currentHonorIndex.value === 0 
+    ? honors.value.length - 1 
+    : currentHonorIndex.value - 1
+}
+
+const visibleHonors = computed(() => {
+  const total = honors.value.length
+  let result = []
+  for (let i = 0; i < 3; i++) {
+    const index = (currentHonorIndex.value + i) % total
+    result.push(honors.value[index])
+  }
+  return result
+})
+
+const getItemClass = (index) => {
+  if (index === 1) return 'center'
+  if (index === 0) return 'left'
+  if (index === 2) return 'right'
+  return ''
+}
 
 onMounted(() => {
   // 初始化时间显示
@@ -395,12 +501,12 @@ onMounted(() => {
     })
     chart.setOption({
       grid: {
-        top: '2%',
+        top: '7%',
         left: '3%',
         right: '20%',
         bottom: '2%',
         containLabel: true,
-        height: '85%'
+        height: '80%'
       },
       tooltip: {
         trigger: 'item',
@@ -408,14 +514,15 @@ onMounted(() => {
       },
       legend: {
         orient: 'vertical',
-        right: '5%',
+        right: '7%',
         top: 'center',
         itemWidth: 6,
         itemHeight: 6,
-        itemGap: 6,
+        itemGap: 12,
         textStyle: {
           color: '#fff',
-          fontSize: 6
+          fontSize: 6,
+          fontWeight: 'bold'
         }
       },
       xAxis: {
@@ -450,7 +557,7 @@ onMounted(() => {
           name: '运动控制数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 10,
           data: [2000, null, null, null, null, null, null, null, null, null],
           itemStyle: { color: '#FF6B6B' }
@@ -459,7 +566,7 @@ onMounted(() => {
           name: '交互行为数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 9,
           data: [null, 1600, null, null, null, null, null, null, null, null],
           itemStyle: { color: '#4ECDC4' }
@@ -468,7 +575,7 @@ onMounted(() => {
           name: '几何形变数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 8,
           data: [null, null, 2200, null, null, null, null, null, null, null],
           itemStyle: { color: '#FFD93D' }
@@ -477,7 +584,7 @@ onMounted(() => {
           name: '关节状态数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 7,
           data: [null, null, null, 1800, null, null, null, null, null, null],
           itemStyle: { color: '#6C5CE7' }
@@ -486,7 +593,7 @@ onMounted(() => {
           name: '导航定位数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 6,
           data: [null, null, null, null, 1500, null, null, null, null, null],
           itemStyle: { color: '#95A5A6' }
@@ -495,7 +602,7 @@ onMounted(() => {
           name: '多模态感知数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 5,
           data: [null, null, null, null, null, 1200, null, null, null, null],
           itemStyle: { color: '#2ECC71' }
@@ -504,7 +611,7 @@ onMounted(() => {
           name: '视觉感知数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 4,
           data: [null, null, null, null, null, null, 1900, null, null, null],
           itemStyle: { color: '#E74C3C' }
@@ -513,7 +620,7 @@ onMounted(() => {
           name: '语音交互数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 3,
           data: [null, null, null, null, null, null, null, 1700, null, null],
           itemStyle: { color: '#3498DB' }
@@ -522,7 +629,7 @@ onMounted(() => {
           name: '力反馈数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 2,
           data: [null, null, null, null, null, null, null, null, 1400, null],
           itemStyle: { color: '#9B59B6' }
@@ -531,7 +638,7 @@ onMounted(() => {
           name: '环境感知数据',
           type: 'bar',
           barGap: '-100%',
-          barWidth: 8,
+          barWidth: 20,
           z: 1,
           data: [null, null, null, null, null, null, null, null, null, 2100],
           itemStyle: { color: '#F1C40F' }
@@ -546,6 +653,16 @@ onMounted(() => {
       myBarChart.resize({ animation: { duration: 300 } })
       chart.resize({ animation: { duration: 300 } })
     })
+
+    // 修改企业名称滚动逻辑
+    setInterval(() => {
+      currentIndex.value = (currentIndex.value + 1) % companies.length
+    }, 3000) // 每3秒切换一次
+
+    // 自动轮播
+    setInterval(() => {
+      nextHonor()
+    }, 5000)
   }, 100)
 })
 
@@ -1079,5 +1196,257 @@ html, body {
   flex: 1;
   height: 100%;
   margin-left: 10px;
+}
+
+.data-stats {
+  position: absolute;
+  top: 55px;
+  right: 65px;
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+}
+
+.data-stat {
+  color: #00FFFF;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Microsoft YaHei';
+}
+
+.company-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.company-list {
+  height: 476px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding-top: 0;
+  margin-top: -130px; /* 整体向上移动 */
+}
+
+.company-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transition: transform 0.7s ease;
+}
+
+.company-item {
+  transition: all 0.3s ease;
+  text-align: center;
+  white-space: nowrap;
+  height: 45px;
+  line-height: 45px;
+  margin: 0px 0;
+  color: #1B3673;
+}
+
+.company-item:nth-child(1) {
+  font-size: 18px;
+  color: rgba(27, 54, 115, 0.7);
+  font-weight: bold;
+}
+
+.company-item:nth-child(2) {
+  font-size: 24px;
+  color: rgba(27, 54, 115, 0.9);
+  font-weight: bold;
+}
+
+.company-item:nth-child(3) {
+  font-size: 32px;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+.company-item:nth-child(4) {
+  font-size: 24px;
+  color: rgba(27, 54, 115, 0.9);
+  font-weight: bold;
+}
+
+.company-item:nth-child(5) {
+  font-size: 18px;
+  color: rgba(27, 54, 115, 0.7);
+  font-weight: bold;
+}
+
+.company-title {
+  position: absolute;
+  right: 20px;
+  top: 27px;
+  color: #57FFFF;
+  font-size: 15px;
+  font-family: bold;
+}
+
+.honor-carousel {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 61px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 40px;
+  margin-top: 20px;
+}
+
+.carousel-container {
+  width: 100%;
+  height: 220px;
+  position: relative;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0px;
+  width: 100%;
+  left: 0;
+  transform: none;
+}
+
+.honor-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.5s ease;
+  opacity: 1;
+  transform: none;
+  margin: 0 -4px; /* 减小图片之间的间距 */
+}
+
+.honor-item.left {
+  transform: none;
+  opacity: 1;
+}
+
+.honor-item.center {
+  transform: none;
+  opacity: 1;
+}
+
+.honor-item.right {
+  transform: none;
+  opacity: 1;
+}
+
+.honor-item .honor-frame {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.5s ease;
+  border: 2px solid #00FFFF;
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.honor-item .honor-frame img {
+  width: 100px;
+  height: 140px;
+  object-fit: contain;
+}
+
+.honor-item.center .honor-frame {
+  width: 140px;
+  height: 180px;
+  margin-top: 20px;
+}
+
+.honor-item.center .honor-frame img {
+  width: 120px;
+  height: 160px;
+}
+
+.honor-title {
+  color: #FFFFFF;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 5px;
+  width: 180px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carousel-arrow {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.carousel-arrow.left {
+  left: 0px;
+}
+
+.carousel-arrow.right {
+  right: 0px;
+}
+
+.carousel-arrow img {
+  width: 17px;
+  height: 34px;
+}
+
+.corner-tl, .corner-tr, .corner-bl, .corner-br {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: #00FFFF;
+  z-index: 1;
+}
+
+.corner-tl {
+  top: -2px;
+  left: -2px;
+  border-left: 2px solid;
+  border-top: 2px solid;
+}
+
+.corner-tr {
+  top: -2px;
+  right: -2px;
+  border-right: 2px solid;
+  border-top: 2px solid;
+}
+
+.corner-bl {
+  bottom: -2px;
+  left: -2px;
+  border-left: 2px solid;
+  border-bottom: 2px solid;
+}
+
+.corner-br {
+  bottom: -2px;
+  right: -2px;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
 }
 </style>
