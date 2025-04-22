@@ -195,7 +195,11 @@
           </div>
           <div class="chart-item">
             <h3>入场人数统计</h3>
-            <div ref="lineChart3" class="chart"></div>
+            <div class="entrance-stats">
+              <div class="stats-item">周累计: <span>{{ weeklyCount }}</span></div>
+              <div class="stats-item">月累计: <span>{{ monthlyCount }}</span></div>
+            </div>
+            <div ref="lineChart3" class="entrance-chart"></div>
           </div>
         </div>
       </div>
@@ -209,6 +213,8 @@ import * as echarts from 'echarts'
 
 // 导入awards图片
 import awardsImg from '../assets/awards.png'
+import awardsImg2 from '../assets/awards_2.png'
+import awardsImg3 from '../assets/awards_3.png'
 
 const pieChart1 = ref(null)
 const pieChart2 = ref(null)
@@ -218,6 +224,8 @@ const barChart2 = ref(null)
 const lineChart1 = ref(null)
 const lineChart2 = ref(null)
 const lineChart3 = ref(null)
+const weeklyCount = ref(50)
+const monthlyCount = ref(200)
 
 // 修改数据为6条
 const robotData = [
@@ -272,11 +280,11 @@ const honors = ref([
   },
   {
     title: '机器人训练示范基地',
-    image: awardsImg
+    image: awardsImg2
   },
   {
     title: '智能机器人创新中心',
-    image: awardsImg
+    image: awardsImg3
   }
 ])
 
@@ -645,6 +653,72 @@ onMounted(() => {
         }
       ]
     })
+
+    // 初始化入场人数统计图表
+    const lineChart3Instance = echarts.init(lineChart3.value, null, { devicePixelRatio: window.devicePixelRatio * 2 })
+    const visitorsData = [
+      { date: '11/20', value: 10 },
+      { date: '11/21', value: 15 },
+      { date: '11/22', value: 120 },
+      { date: '11/23', value: 130 },
+      { date: '11/24', value: 187 },
+      { date: '11/25', value: 85 },
+      { date: '11/26', value: 4 },
+      { date: '11/27', value: 8 },
+      { date: '11/28', value: 35 },
+      { date: '11/29', value: 15 }
+    ]
+    const optionLine3 = {
+      grid: { 
+        left: '6%',
+        right: '5%',
+        bottom: '8%',
+        top: '8%',
+        containLabel: true
+      },
+      xAxis: { 
+        type: 'category', 
+        boundaryGap: true,
+        data: visitorsData.map(i => i.date), 
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } }, 
+        axisLabel: { 
+          color: '#fff', 
+          fontSize: 12,
+          margin: 12,
+          interval: 1
+        }, 
+        splitLine: { 
+          show: true, 
+          lineStyle: { color: 'rgba(255,255,255,0.1)' },
+          interval: 0  // 设置为0表示显示所有网格线
+        } 
+      },
+      yAxis: { 
+        type: 'value', 
+        min: 0, 
+        max: 200, 
+        interval: 50, 
+        axisLabel: { 
+          color: '#fff', 
+          fontSize: 12,
+          margin: 8  // 调整标签边距
+        }, 
+        splitLine: { 
+          show: true, 
+          lineStyle: { 
+            color: 'rgba(255,255,255,0.1)',
+            type: 'dashed'  // 使用虚线网格
+          } 
+        } 
+      },
+      series: [{
+        data: visitorsData.map(i => i.value), type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
+        itemStyle: { color: '#00FFFF' }, lineStyle: { color: '#00FFFF', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{ offset:0, color:'rgba(0,255,255,0.3)' },{ offset:1, color:'rgba(0,255,255,0)' }]) },
+        markPoint: { symbol: 'circle', symbolSize: 8, data: [{ type:'max', name:'最大值' }, { type:'min', name:'最小值' }], itemStyle:{ color:'#00FFFF' }, label:{ color:'#fff' }}
+      }]
+    }
+    lineChart3Instance.setOption(optionLine3)
+    window.addEventListener('resize', () => { lineChart3Instance.resize() })
 
     // 响应式调整
     window.addEventListener('resize', () => {
@@ -1200,8 +1274,8 @@ html, body {
 
 .data-stats {
   position: absolute;
-  top: 55px;
-  right: 65px;
+  top: 25px;
+  right: 35px;
   display: flex;
   gap: 20px;
   z-index: 10;
@@ -1448,5 +1522,27 @@ html, body {
   right: -2px;
   border-right: 2px solid;
   border-bottom: 2px solid;
+}
+
+.entrance-stats {
+  position: absolute;
+  top: 25px;
+  right: 35px;
+  display: flex;
+  gap: 20px;
+  color: #00FFFF;
+  font-size: 14px;
+}
+
+.entrance-stats .stats-item span {
+  font-weight: bold;
+}
+
+.entrance-chart {
+  position: absolute;
+  top: 47px;
+  left: 0px;
+  width: 500px;
+  height: 280px;
 }
 </style>
