@@ -76,22 +76,43 @@
           <h3>受训机器人实时状态</h3>
           <div class="pie-charts">
             <div ref="pieChart3" class="pie-chart"></div>
-          </div>
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-color online"></span>
-              <span>在线</span>
-              <span class="legend-value">60</span>
+            <div class="circle-progress">
+              <!-- 外环底色 -->
+              <div class="outer-circle-base"></div>
+              <!-- 外环旋转部分 -->
+              <div class="outer-circle-rotating"></div>
+              <!-- 内环底色 -->
+              <div class="inner-circle-base"></div>
+              <!-- 内环旋转部分 -->
+              <div class="inner-circle-rotating"></div>
+              <!-- 虚线装饰 -->
+              <div class="inner-dashed-circle"></div>
+              <!-- 内部蓝色细线 -->
+              <div class="inner-line-circle"></div>
+              <!-- 内部深色圆圈 -->
+              <div class="inner-dark-circle"></div>
+              <!-- 中心内容 -->
+              <div class="inner-content">
+                <div class="label">总数</div>
+                <div class="value">60</div>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-color offline"></span>
-              <span>离线</span>
-              <span class="legend-value">30</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color error"></span>
-              <span>故障</span>
-              <span class="legend-value">15</span>
+            <div class="legend">
+              <div class="legend-item">
+                <span class="legend-color online"></span>
+                <span>在线</span>
+                <span class="legend-value">60</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color offline"></span>
+                <span>离线</span>
+                <span class="legend-value">30</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color error"></span>
+                <span>故障</span>
+                <span class="legend-value">15</span>
+              </div>
             </div>
           </div>
         </div>
@@ -109,10 +130,17 @@
                 <span>采集量（条）</span>
               </div>
               <div class="list-content">
-                <div class="list-item" v-for="(item, index) in displayData" :key="index">
-                  <span>{{ item.name }}</span>
-                  <span>{{ item.type }}</span>
-                  <span>{{ item.value }}</span>
+                <div class="list-scroll">
+                  <div class="list-item" v-for="(item, index) in displayData" :key="index">
+                    <span>{{ item.name }}</span>
+                    <span>{{ item.type }}</span>
+                    <span>{{ item.value }}</span>
+                  </div>
+                  <div class="list-item" v-for="(item, index) in displayData" :key="'clone-'+index">
+                    <span>{{ item.name }}</span>
+                    <span>{{ item.type }}</span>
+                    <span>{{ item.value }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -140,7 +168,7 @@
           <h3>训练场荣誉</h3>
           <div class="honor-carousel">
             <div class="carousel-arrow left" @click="prevHonor">
-              <img src="../assets/arrow-left.png" alt="上一个">
+              <img src="../assets/arrow-left.svg" alt="上一个">
             </div>
             <div class="carousel-container">
               <div class="carousel-wrapper">
@@ -158,7 +186,7 @@
               </div>
             </div>
             <div class="carousel-arrow right" @click="nextHonor">
-              <img src="../assets/arrow-right.png" alt="下一个">
+              <img src="../assets/arrow-right.svg" alt="下一个">
             </div>
           </div>
         </div>
@@ -808,6 +836,35 @@ onMounted(() => {
   margin-left: 2px;
 }
 
+/* 单独设置第一个图表的图例样式 */
+.pie-section:first-child .legend-value {
+  color: #FFFFFF;
+}
+
+/* 单独设置第二个图表的图例样式 */
+.pie-section:nth-child(2) .pie-legend {
+  padding-left: 15px;
+}
+
+.pie-section:nth-child(2) .legend-item {
+  margin-left: 8px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 75px;
+}
+
+.pie-section:nth-child(2) .legend-text {
+  min-width: 60px;
+  text-align: left;
+  margin-right: 0;
+}
+
+.pie-section:nth-child(2) .legend-value {
+  color: #FFFFFF;
+  margin-left: 5px;
+  text-align: left;
+}
+
 .stats-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -887,6 +944,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   margin-left: 35px;
+  margin-top: 2px;
 }
 
 .list-header {
@@ -901,15 +959,35 @@ onMounted(() => {
   position: relative;
   z-index: 2;
   background: #0A184B;
+  border-bottom: 1px solid rgba(59, 160, 232, 1);
 }
 
 .list-content {
   flex: none;
-  height: 238px;
+  height: 204px;
   overflow: hidden;
   position: relative;
-  margin-top: -34px;
-  padding-top: 34px;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.list-scroll {
+  animation: scrollList 15s linear infinite;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes scrollList {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(calc(-50% - 17px));
+  }
+}
+
+.list-scroll:hover {
+  animation-play-state: paused;
 }
 
 .list-item {
@@ -923,6 +1001,7 @@ onMounted(() => {
   align-items: center;
   border-bottom: 1px solid rgba(59, 160, 232, 1);
   transition: transform 0.1s linear;
+  flex-shrink: 0;
 }
 
 .list-item:last-child {
@@ -937,18 +1016,19 @@ onMounted(() => {
 
 .data-stats {
   position: absolute;
-  top: 25px;
-  right: 35px;
+  top: 52px;
+  right: 78px;
   display: flex;
   gap: 20px;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .data-stat {
   color: #00FFFF;
   font-size: 12px;
-  font-weight: bold;
   font-family: 'Microsoft YaHei';
+  text-shadow: 0 0 2px rgba(0, 255, 255, 0.5);
 }
 
 .company-frame {
@@ -1199,6 +1279,7 @@ onMounted(() => {
 
 .entrance-stats .stats-item span {
   font-weight: bold;
+  font-size: 11px;
 }
 
 .entrance-chart {
@@ -1242,5 +1323,208 @@ onMounted(() => {
 
 .chart-row:nth-child(3) .chart-item:nth-child(3) {
   background-image: url('../assets/frame_8.png');
+}
+
+.pie-charts {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 61px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.circle-progress {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  z-index: 2;
+  transform: translate(-40px, -20px);
+}
+
+.outer-circle-base {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 18px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  border-left: 18px solid #74afff;
+  border-bottom: 18px solid #74afff;
+  transform: rotate(-90deg);
+}
+
+.outer-circle-rotating {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 18px solid transparent;
+  border-radius: 50%;
+  border-top: 18px solid #FF9500;
+  transform-origin: center;
+  animation: rotateOuter 4s linear infinite;
+}
+
+.inner-circle-base {
+  position: absolute;
+  width: 75%;
+  height: 75%;
+  left: 12.5%;
+  top: 12.5%;
+  border: 18px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  border-left: 18px solid #74afff;
+  border-bottom: 18px solid #74afff;
+  transform: rotate(135deg);
+}
+
+.inner-circle-rotating {
+  position: absolute;
+  width: 75%;
+  height: 75%;
+  left: 12.5%;
+  top: 12.5%;
+  border: 18px solid transparent;
+  border-radius: 50%;
+  border-top: 18px solid #00FFFF;
+  transform-origin: center;
+  animation: rotateInner 3s linear infinite;
+}
+
+.inner-line-circle {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  left: 25%;
+  top: 25%;
+  border: 2px solid #00FFFF;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.inner-dark-circle {
+  position: absolute;
+  width: 45%;
+  height: 45%;
+  left: 27.5%;
+  top: 27.5%;
+  border: 3px solid rgba(0, 255, 255, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+}
+
+.inner-dashed-circle {
+  position: absolute;
+  width: 75%;
+  height: 75%;
+  left: 12.5%;
+  top: 12.5%;
+  border: 2px dashed rgba(0, 255, 255, 0.3);
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(0, 255, 255, 0.2);
+}
+
+.dashed-circle {
+  position: absolute;
+  width: 88%;
+  height: 88%;
+  left: 6%;
+  top: 6%;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.inner-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #00FFFF;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inner-content .label {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+.inner-content .value {
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  color: #FF9500;
+}
+
+@keyframes rotateOuter {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes rotateInner {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pie-chart {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  z-index: 1;
+}
+
+.pie-charts .legend {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pie-charts .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #FFFFFF;
+  font-size: 14px;
+}
+
+.pie-charts .legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.pie-charts .legend-color.online {
+  background-color: #00FFFF;
+  box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.pie-charts .legend-color.offline {
+  background-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.pie-charts .legend-color.error {
+  background-color: #FF6B6B;
+  box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
+}
+
+.pie-charts .legend-value {
+  color: #FFFFFF;
+  font-weight: bold;
+  margin-left: 8px;
+  font-size: 16px;
 }
 </style> 
