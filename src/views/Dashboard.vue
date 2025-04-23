@@ -40,7 +40,6 @@ import DashboardPage3 from './DashboardPage3.vue'
 
 const pages = [DashboardPage1, DashboardPage2, DashboardPage3]
 const currentPage = ref(0)
-const autoPlayInterval = ref(null)
 const dashboardRef = ref(null)
 
 const goToPage = (index) => {
@@ -55,23 +54,6 @@ const prevPage = () => {
   currentPage.value = (currentPage.value - 1 + 3) % 3
 }
 
-const startAutoPlay = () => {
-  autoPlayInterval.value = setInterval(() => {
-    nextPage()
-  }, 8000)
-}
-
-const pauseAutoPlay = () => {
-  if (autoPlayInterval.value) {
-    clearInterval(autoPlayInterval.value)
-  }
-}
-
-const resumeAutoPlay = () => {
-  pauseAutoPlay()
-  startAutoPlay()
-}
-
 const handleKeydown = (e) => {
   if (e.key === 'ArrowLeft') {
     prevPage()
@@ -81,12 +63,11 @@ const handleKeydown = (e) => {
 }
 
 onMounted(() => {
-  startAutoPlay()
   dashboardRef.value?.focus()
 })
 
 onUnmounted(() => {
-  pauseAutoPlay()
+  // No need to clean up any resources as there's no auto-play functionality
 })
 </script>
 
