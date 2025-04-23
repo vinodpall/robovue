@@ -9,6 +9,10 @@
             class="robot-card"
             :class="getCardPosition(index)"
           >
+            <div class="corner-line corner-line-tl"></div>
+            <div class="corner-line corner-line-tr"></div>
+            <div class="corner-line corner-line-bl"></div>
+            <div class="corner-line corner-line-br"></div>
             <div class="card-title">
               <div class="title-content">
                 <span>{{ robot.name }}</span>
@@ -216,8 +220,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background-color: #0A184B;
-  border: 1px solid #00FFFF;
-  border-radius: 4px;
   transition: all 0.5s ease;
   transform-style: preserve-3d;
   transform-origin: center;
@@ -243,6 +245,7 @@ onUnmounted(() => {
   z-index: 1;
 }
 
+/* 主要边框和背景 */
 .robot-card::before {
   content: '';
   position: absolute;
@@ -250,14 +253,64 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s ease;
+  background: #0A184B;
+  border: 2px solid #66FFFF;
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    0 calc(100% - 20px),
+    0 20px
+  );
+  z-index: -1;
 }
 
-.robot-card.center::before {
-  opacity: 1;
+/* 切角处的边线 */
+.robot-card .corner-line {
+  position: absolute;
+  width: 28.28px; /* 20px * √2 */
+  height: 2px;
+  background: #66FFFF;
+  pointer-events: none;
+}
+
+/* 左上角 */
+.robot-card .corner-line-tl {
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  transform: translate(2px, 19px) rotate(-45deg);
+}
+
+/* 右上角 */
+.robot-card .corner-line-tr {
+  top: 0;
+  right: 0;
+  transform-origin: top right;
+  transform: translate(-2px, 19px) rotate(45deg);
+}
+
+/* 左下角 */
+.robot-card .corner-line-bl {
+  bottom: 0;
+  left: 0;
+  transform-origin: bottom left;
+  transform: translate(2px, -19px) rotate(45deg);
+}
+
+/* 右下角 */
+.robot-card .corner-line-br {
+  bottom: 0;
+  right: 0;
+  transform-origin: bottom right;
+  transform: translate(-2px, -19px) rotate(-45deg);
+}
+
+.robot-card .corner {
+  display: none;
 }
 
 .card-title {
@@ -268,15 +321,15 @@ onUnmounted(() => {
 .title-content {
   display: inline-block;
   padding: 8px 30px;
-  color: #00FFFF;
-  font-size: 24px;
+  color: #66FFFF;
+  font-size: 26px;
   font-weight: bold;
   position: relative;
-  border: 2px solid #00FFFF;
-  background: rgba(0, 255, 255, 0.1);
-  clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  background: rgba(102, 255, 255, 0.1);
+  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+  text-shadow: 0 0 10px rgba(102, 255, 255, 0.5);
   white-space: nowrap;
+  border: none;
 }
 
 .subtitle {
@@ -316,7 +369,7 @@ onUnmounted(() => {
 }
 
 .section-title {
-  color: #00FFFF;
+  color: #66FFFF;
   font-size: 18px;
   margin-bottom: 10px;
   font-weight: bold;
@@ -329,7 +382,7 @@ onUnmounted(() => {
   content: '';
   width: 4px;
   height: 18px;
-  background: #00FFFF;
+  background: #66FFFF;
   display: inline-block;
 }
 
@@ -356,7 +409,7 @@ onUnmounted(() => {
 
 .spec-icon,
 .award-icon {
-  color: #00FFFF;
+  color: #66FFFF;
   font-size: 12px;
   position: absolute;
   left: 0;
