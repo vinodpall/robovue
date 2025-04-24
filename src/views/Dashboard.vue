@@ -1,30 +1,32 @@
 <template>
-  <div class="dashboard" @keydown="handleKeydown" tabindex="0" ref="dashboardRef">
-    <Header />
-    <div class="content">
-      <div class="carousel-container">
-        <div class="carousel-items">
-          <div 
-            v-for="(_, index) in 3" 
-            :key="index"
-            class="carousel-item"
-            :class="{ active: currentPage === index }"
-            :style="{ 
-              opacity: currentPage === index ? 1 : 0,
-              visibility: currentPage === index ? 'visible' : 'hidden'
-            }"
-          >
-            <component :is="pages[index]" />
+  <div class="dashboard-container">
+    <div class="dashboard" @keydown="handleKeydown" tabindex="0" ref="dashboardRef">
+      <Header />
+      <div class="content">
+        <div class="carousel-container">
+          <div class="carousel-items">
+            <div 
+              v-for="(_, index) in 3" 
+              :key="index"
+              class="carousel-item"
+              :class="{ active: currentPage === index }"
+              :style="{ 
+                opacity: currentPage === index ? 1 : 0,
+                visibility: currentPage === index ? 'visible' : 'hidden'
+              }"
+            >
+              <component :is="pages[index]" />
+            </div>
           </div>
-        </div>
-        <div class="carousel-controls">
-          <div 
-            v-for="(_, index) in 3" 
-            :key="index"
-            class="control-dot"
-            :class="{ active: currentPage === index }"
-            @click="goToPage(index)"
-          ></div>
+          <div class="carousel-controls">
+            <div 
+              v-for="(_, index) in 3" 
+              :key="index"
+              class="control-dot"
+              :class="{ active: currentPage === index }"
+              @click="goToPage(index)"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
@@ -72,11 +74,24 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.dashboard-container {
+  width: 100%;
+  height: 100vh;
+  background-color: #000B2A;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+
 .dashboard {
   width: 1600px;
   height: 1200px;
   background-color: #0A184B;
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
   outline: none;
 }
 
