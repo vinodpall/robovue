@@ -112,7 +112,7 @@ onUnmounted(() => {
 
 .carousel-controls {
   position: absolute;
-  bottom: 20px;
+  bottom: 5px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
