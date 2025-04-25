@@ -1,61 +1,104 @@
 <template>
   <div class="data-type-settings">
-    <div class="header">
-      <h2>数据类型设置</h2>
-      <el-button type="primary" @click="showAddDialog">新增数据类型</el-button>
+    <!-- 筛选区域 -->
+    <div class="filter-section">
+      <el-form :inline="true" :model="filterForm" class="filter-form">
+        <el-form-item label="类型名称">
+          <el-input v-model="filterForm.name" placeholder="请输入类型名称" clearable />
+        </el-form-item>
+        <el-form-item label="格式">
+          <el-select v-model="filterForm.format" placeholder="请选择格式" clearable>
+            <el-option label="数字" value="number" />
+            <el-option label="文本" value="text" />
+            <el-option label="日期" value="date" />
+            <el-option label="布尔" value="boolean" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="resetFilter">重置</el-button>
+        </el-form-item>
+      </el-form>
+      <div class="action-buttons">
+        <div class="left-buttons">
+          <el-button type="primary" @click="showAddDialog">
+            <el-icon><Plus /></el-icon>新增数据类型
+          </el-button>
+        </div>
+      </div>
     </div>
 
     <!-- 数据类型列表 -->
-    <el-table :data="dataTypeList" style="width: 100%" border>
-      <el-table-column prop="id" label="编号" width="80" />
-      <el-table-column prop="name" label="数据类型名称" />
-      <el-table-column prop="description" label="描述" />
-      <el-table-column prop="format" label="数据格式" />
-      <el-table-column prop="unit" label="单位" />
-      <el-table-column prop="createTime" label="创建时间" />
-      <el-table-column label="操作" width="200">
-        <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-section">
+      <el-table 
+        :data="dataTypeList" 
+        style="width: 100%" 
+        border 
+        stripe 
+        v-loading="loading"
+        :height="tableHeight"
+      >
+        <el-table-column prop="id" label="编号" width="80" />
+        <el-table-column prop="name" label="类型名称" min-width="160" />
+        <el-table-column prop="description" label="描述" min-width="200" />
+        <el-table-column prop="format" label="格式" width="120">
+          <template #default="scope">
+            <el-tag :type="getFormatTagType(scope.row.format)">
+              {{ getFormatLabel(scope.row.format) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="unit" label="单位" width="100" />
+        <el-table-column prop="createTime" label="创建时间" width="120" />
+        <el-table-column label="操作" width="160" fixed="right">
+          <template #default="scope">
+            <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页 -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[15, 20, 50, 100]"
+          :total="total"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </div>
 
     <!-- 新增/编辑对话框 -->
     <el-dialog
       :title="dialogType === 'add' ? '新增数据类型' : '编辑数据类型'"
       v-model="dialogVisible"
-      width="500px"
+      width="600px"
     >
-      <el-form :model="dataTypeForm" label-width="100px" :rules="rules" ref="formRef">
+      <el-form :model="dataTypeForm" label-width="120px" :rules="rules" ref="formRef">
         <el-form-item label="类型名称" prop="name">
-          <el-input v-model="dataTypeForm.name" />
+          <el-input v-model="dataTypeForm.name" placeholder="请输入类型名称" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
-          <el-input v-model="dataTypeForm.description" type="textarea" />
+          <el-input v-model="dataTypeForm.description" type="textarea" placeholder="请输入描述" />
         </el-form-item>
-        <el-form-item label="数据格式" prop="format">
-          <el-select v-model="dataTypeForm.format" placeholder="请选择数据格式">
-            <el-option label="数值型" value="number" />
-            <el-option label="文本型" value="text" />
-            <el-option label="日期型" value="date" />
-            <el-option label="布尔型" value="boolean" />
-            <el-option label="图像型" value="image" />
-            <el-option label="视频型" value="video" />
+        <el-form-item label="格式" prop="format">
+          <el-select v-model="dataTypeForm.format" placeholder="请选择格式">
+            <el-option label="数字" value="number" />
+            <el-option label="文本" value="text" />
+            <el-option label="日期" value="date" />
+            <el-option label="布尔" value="boolean" />
           </el-select>
         </el-form-item>
         <el-form-item label="单位" prop="unit">
-          <el-input v-model="dataTypeForm.unit" />
+          <el-input v-model="dataTypeForm.unit" placeholder="请输入单位" />
         </el-form-item>
-        <el-form-item label="验证规则">
-          <el-form-item v-if="dataTypeForm.format === 'number'">
-            <el-input-number v-model="dataTypeForm.minValue" placeholder="最小值" />
-            <span class="mx-2">-</span>
-            <el-input-number v-model="dataTypeForm.maxValue" placeholder="最大值" />
-          </el-form-item>
-          <el-form-item v-if="dataTypeForm.format === 'text'">
-            <el-input-number v-model="dataTypeForm.maxLength" placeholder="最大长度" />
-          </el-form-item>
+        <el-form-item label="验证规则" prop="validation">
+          <el-input v-model="dataTypeForm.validation" type="textarea" placeholder="请输入验证规则" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -69,17 +112,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(15)
+const total = ref(100)
+const tableHeight = ref(0)
+
+const filterForm = ref({
+  name: '',
+  format: ''
+})
 
 const dataTypeList = ref([
   {
     id: '1',
-    name: '交互行为数据',
-    description: '记录机器人与人的交互行为数据',
-    format: 'text',
-    unit: '次',
-    createTime: '2024/03/20'
+    name: '温度',
+    description: '环境温度数据',
+    format: 'number',
+    unit: '℃',
+    createTime: '2024/03/20',
+    validation: '>= -50 && <= 100'
   }
 ])
 
@@ -92,9 +148,7 @@ const dataTypeForm = ref({
   description: '',
   format: '',
   unit: '',
-  minValue: null,
-  maxValue: null,
-  maxLength: null
+  validation: ''
 })
 
 const rules = {
@@ -106,8 +160,52 @@ const rules = {
     { required: true, message: '请输入描述', trigger: 'blur' }
   ],
   format: [
-    { required: true, message: '请选择数据格式', trigger: 'change' }
+    { required: true, message: '请选择格式', trigger: 'change' }
   ]
+}
+
+// 计算表格高度
+const calculateTableHeight = () => {
+  nextTick(() => {
+    const windowHeight = window.innerHeight
+    const filterHeight = document.querySelector('.filter-section').offsetHeight
+    const paginationHeight = document.querySelector('.pagination').offsetHeight
+    const padding = 24 * 2 // 上下内边距
+    tableHeight.value = windowHeight - filterHeight - paginationHeight - padding - 16 - 20 // 减少间距并额外减少20px
+  })
+}
+
+// 监听窗口大小变化
+window.addEventListener('resize', calculateTableHeight)
+
+onMounted(() => {
+  calculateTableHeight()
+})
+
+const handleSearch = () => {
+  // 这里应该调用后端 API 进行搜索
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+  }, 500)
+}
+
+const resetFilter = () => {
+  filterForm.value = {
+    name: '',
+    format: ''
+  }
+  handleSearch()
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  handleSearch()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  handleSearch()
 }
 
 const showAddDialog = () => {
@@ -117,9 +215,7 @@ const showAddDialog = () => {
     description: '',
     format: '',
     unit: '',
-    minValue: null,
-    maxValue: null,
-    maxLength: null
+    validation: ''
   }
   dialogVisible.value = true
 }
@@ -143,6 +239,26 @@ const handleDelete = (row) => {
     dataTypeList.value = dataTypeList.value.filter(item => item.id !== row.id)
     ElMessage.success('删除成功')
   }).catch(() => {})
+}
+
+const getFormatTagType = (format) => {
+  const types = {
+    number: 'success',
+    text: 'info',
+    date: 'warning',
+    boolean: 'danger'
+  }
+  return types[format] || 'info'
+}
+
+const getFormatLabel = (format) => {
+  const labels = {
+    number: '数字',
+    text: '文本',
+    date: '日期',
+    boolean: '布尔'
+  }
+  return labels[format] || format
 }
 
 const handleSubmit = () => {
@@ -171,29 +287,214 @@ const handleSubmit = () => {
 
 <style scoped>
 .data-type-settings {
-  padding: 20px;
-  background-color: white;
-  border-radius: 4px;
+  padding: 0;
+  background-color: #fff;
+  height: 100%;
 }
 
-.header {
+.filter-section {
+  margin-bottom: 32px;
+  padding-bottom: 0;
+}
+
+.filter-form {
+  margin-bottom: 4px;
+}
+
+.action-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
+  margin-top: 16px;
 }
 
-.header h2 {
-  margin: 0;
+.left-buttons, .right-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.right-buttons {
+  margin-left: 24px;
+}
+
+:deep(.el-table) {
+  --el-table-border-color: transparent;
+  --el-table-header-bg-color: #eef0f2;
+  --el-table-row-hover-bg-color: #f5f7fa;
+  border: none;
+  margin-top: -8px;
+  height: calc(100vh - 280px);
+}
+
+:deep(.el-table th) {
+  font-weight: 600;
+  color: #1f2f3d;
+  height: 36px;
+  padding: 6px 0;
+  background-color: #eef0f2;
+  font-size: 13px;
+  border: none;
+}
+
+:deep(.el-table td) {
+  height: 36px;
+  padding: 3px 0;
+  font-size: 13px;
+  border: none;
+}
+
+:deep(.el-table .cell) {
+  line-height: 1.3;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+:deep(.el-table--border) {
+  border: none;
+}
+
+:deep(.el-table--border::after) {
+  display: none;
+}
+
+:deep(.el-table--border::before) {
+  display: none;
+}
+
+:deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+
+:deep(.el-table__border-left-patch) {
+  display: none;
+}
+
+:deep(.el-table__border-bottom-patch) {
+  display: none;
+}
+
+:deep(.el-table__cell) {
+  border: none;
+}
+
+:deep(.el-table__header) {
+  border: none;
+}
+
+:deep(.el-table__body) {
+  border: none;
+}
+
+:deep(.el-table__row) {
+  border: none;
+  height: 44px;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #eef0f2 !important;
+}
+
+:deep(.el-table__body tr.el-table__row--striped) {
+  background-color: #eef0f2 !important;
+}
+
+:deep(.el-button--small) {
+  padding: 6px 12px;
+  font-size: 12px;
+  height: 28px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px 40px;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
 }
 
-.mx-2 {
-  margin: 0 8px;
+:deep(.el-form-item) {
+  margin-bottom: 22px;
+  margin-right: 0;
+}
+
+:deep(.el-form--inline .el-form-item) {
+  margin-right: 32px;
+  margin-bottom: 0;
+}
+
+:deep(.el-form--inline .el-form-item__content) {
+  margin-left: 8px;
+}
+
+:deep(.el-select) {
+  width: 180px;
+}
+
+:deep(.el-input) {
+  width: 180px;
+}
+
+:deep(.el-button .el-icon) {
+  margin-right: 4px;
+}
+
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-height: 28px;
+  --el-pagination-button-width: 28px;
+  --el-pagination-button-font-size: 12px;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+:deep(.el-pagination .el-select .el-input) {
+  width: 90px;
+}
+
+:deep(.el-pagination .el-select .el-input__wrapper) {
+  padding: 0 8px;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  font-size: 12px;
+  line-height: 28px;
+}
+
+:deep(.el-pagination .el-pagination__jump) {
+  font-size: 12px;
+  line-height: 28px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  font-size: 12px;
+  line-height: 28px;
+}
+
+:deep(.el-pagination .el-pagination__jump .el-input__wrapper) {
+  padding: 0 8px;
+}
+
+:deep(.el-pagination .el-pagination__jump .el-input__inner) {
+  height: 28px;
+  line-height: 28px;
+}
+
+:deep(.el-pagination .el-pager li) {
+  height: 28px;
+  line-height: 28px;
+}
+
+:deep(.el-tag) {
+  margin-right: 0;
 }
 </style> 

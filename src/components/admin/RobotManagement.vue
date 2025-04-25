@@ -158,7 +158,7 @@ const calculateTableHeight = () => {
     const filterHeight = document.querySelector('.filter-section').offsetHeight
     const paginationHeight = document.querySelector('.pagination').offsetHeight
     const padding = 24 * 2 // 上下内边距
-    tableHeight.value = windowHeight - filterHeight - paginationHeight - padding - 16 // 减少间距
+    tableHeight.value = windowHeight - filterHeight - paginationHeight - padding - 16 - 20 // 减少间距并额外减少20px
   })
 }
 
@@ -371,7 +371,11 @@ const handleSubmit = () => {
 }
 
 :deep(.el-table__row) {
-  border: none;
+  height: 44px;
+}
+
+:deep(.el-table__cell) {
+  padding: 6px 0;
 }
 
 :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
@@ -425,15 +429,16 @@ const handleSubmit = () => {
 }
 
 .pagination {
-  margin-top: -8px;
+  margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  padding-bottom: 8px;
 }
 
 :deep(.el-pagination) {
   --el-pagination-bg-color: transparent;
-  --el-pagination-button-height: 24px;
-  --el-pagination-button-width: 24px;
+  --el-pagination-button-height: 28px;
+  --el-pagination-button-width: 28px;
   --el-pagination-button-font-size: 12px;
   padding: 0;
   margin-bottom: 0;
@@ -449,14 +454,17 @@ const handleSubmit = () => {
 
 :deep(.el-pagination .el-pagination__total) {
   font-size: 12px;
+  line-height: 28px;
 }
 
 :deep(.el-pagination .el-pagination__jump) {
   font-size: 12px;
+  line-height: 28px;
 }
 
 :deep(.el-pagination .el-pagination__sizes) {
   font-size: 12px;
+  line-height: 28px;
 }
 
 :deep(.el-pagination .el-pagination__jump .el-input__wrapper) {
@@ -464,7 +472,12 @@ const handleSubmit = () => {
 }
 
 :deep(.el-pagination .el-pagination__jump .el-input__inner) {
-  height: 24px;
-  line-height: 24px;
+  height: 28px;
+  line-height: 28px;
+}
+
+:deep(.el-pagination .el-pager li) {
+  height: 28px;
+  line-height: 28px;
 }
 </style> 
