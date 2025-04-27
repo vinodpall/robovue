@@ -50,12 +50,17 @@
       >
         <el-table-column prop="id" label="编号" width="80" />
         <el-table-column prop="name" label="机器人名称" min-width="160" />
-        <el-table-column prop="type" label="种类" width="120" />
-        <el-table-column prop="application" label="应用场景" width="140" />
-        <el-table-column prop="capability" label="技能" min-width="120" />
-        <el-table-column prop="dataType" label="任务数据类型" width="120" />
-        <el-table-column prop="power" label="采集量" width="100" />
-        <el-table-column prop="createTime" label="创建时间" width="120" />
+        <el-table-column prop="industry_type" label="种类" width="120" />
+        <el-table-column prop="training_field.name" label="应用场景" width="140" />
+        <el-table-column prop="skills" label="技能" min-width="120" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === '在线' ? 'success' : 'info'">
+              {{ scope.row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="create_date" label="创建时间" width="120" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -90,26 +95,53 @@
           <el-input v-model="robotForm.name" placeholder="请输入机器人名称" />
         </el-form-item>
         <el-form-item label="种类" required>
-          <el-select v-model="robotForm.type" placeholder="请选择种类">
+          <el-select v-model="robotForm.industry_type" placeholder="请选择种类">
             <el-option label="工业机器人" value="industrial" />
             <el-option label="特种机器人" value="special" />
           </el-select>
         </el-form-item>
         <el-form-item label="应用场景" required>
-          <el-select v-model="robotForm.application" placeholder="请选择应用场景">
+          <el-select v-model="robotForm.training_field_id" placeholder="请选择应用场景">
             <el-option label="工业一类场景" value="industrial1" />
             <el-option label="医疗康养场景" value="medical" />
             <el-option label="公共商业场景" value="public" />
           </el-select>
         </el-form-item>
         <el-form-item label="技能">
-          <el-input v-model="robotForm.capability" placeholder="请输入机器人技能" />
+          <el-input v-model="robotForm.skills" placeholder="请输入机器人技能" />
         </el-form-item>
-        <el-form-item label="任务数据类型">
-          <el-input v-model="robotForm.dataType" placeholder="请输入任务数据类型" />
+        <el-form-item label="状态">
+          <el-select v-model="robotForm.status" placeholder="请选择状态">
+            <el-option label="在线" value="在线" />
+            <el-option label="离线" value="离线" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="采集量">
-          <el-input v-model="robotForm.power" placeholder="请输入采集量" />
+        <el-form-item label="价格">
+          <el-input v-model="robotForm.price" placeholder="请输入价格" />
+        </el-form-item>
+        <el-form-item label="序列号">
+          <el-input v-model="robotForm.serial_number" placeholder="请输入序列号" />
+        </el-form-item>
+        <el-form-item label="产品位置">
+          <el-input v-model="robotForm.product_location" placeholder="请输入产品位置" />
+        </el-form-item>
+        <el-form-item label="尺寸">
+          <el-input v-model="robotForm.dimensions" placeholder="请输入尺寸" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="robotForm.remarks" placeholder="请输入备注" />
+        </el-form-item>
+        <el-form-item label="奖项">
+          <el-input v-model="robotForm.awards" placeholder="请输入奖项" />
+        </el-form-item>
+        <el-form-item label="推荐理由">
+          <el-input v-model="robotForm.recommendation_reason" placeholder="请输入推荐理由" />
+        </el-form-item>
+        <el-form-item label="是否轮播">
+          <el-switch v-model="robotForm.is_carousel" />
+        </el-form-item>
+        <el-form-item label="轮播添加时间">
+          <el-input v-model="robotForm.carousel_add_time" placeholder="请输入轮播添加时间" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -126,6 +158,9 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload } from '@element-plus/icons-vue'
+import axios from 'axios'
+
+const API_BASE_URL = 'http://127.0.0.1:8000'
 
 const loading = ref(false)
 const currentPage = ref(1)
@@ -144,11 +179,19 @@ const dialogVisible = ref(false)
 const dialogType = ref('add')
 const robotForm = ref({
   name: '',
-  type: '',
-  application: '',
-  capability: '',
-  dataType: '',
-  power: ''
+  industry_type: '',
+  training_field_id: '',
+  skills: '',
+  status: '离线',
+  price: '',
+  serial_number: '',
+  product_location: '',
+  dimensions: '',
+  remarks: '',
+  awards: '',
+  recommendation_reason: '',
+  is_carousel: false,
+  carousel_add_time: ''
 })
 
 // 计算表格高度
@@ -165,19 +208,67 @@ const calculateTableHeight = () => {
 // 监听窗口大小变化
 window.addEventListener('resize', calculateTableHeight)
 
+// 获取机器人列表
+const fetchRobotList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      name: filterForm.value.name || undefined,
+      type: filterForm.value.type || undefined,
+      application: filterForm.value.application || undefined
+    }
+    
+    console.log('请求参数:', params)
+    console.log('请求URL:', `${API_BASE_URL}/api/robots`)
+    
+    const response = await axios.get(`${API_BASE_URL}/api/robots`, { params })
+    console.log('响应数据:', response.data)
+    
+    robotList.value = response.data.items
+    total.value = response.data.total
+  } catch (error) {
+    console.error('获取机器人列表失败:', error)
+    console.error('错误详情:', error.response)
+    ElMessage.error('获取机器人列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 删除机器人
+const deleteRobot = async (id) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/api/robots/${id}`)
+    ElMessage.success('删除成功')
+    fetchRobotList()
+  } catch (error) {
+    console.error('删除机器人失败:', error)
+    ElMessage.error('删除机器人失败')
+  }
+}
+
+// 添加或更新机器人
+const saveRobot = async (data) => {
+  try {
+    if (dialogType.value === 'add') {
+      await axios.post(`${API_BASE_URL}/api/robots`, data)
+      ElMessage.success('添加成功')
+    } else {
+      await axios.put(`${API_BASE_URL}/api/robots/${data.id}`, data)
+      ElMessage.success('修改成功')
+    }
+    dialogVisible.value = false
+    fetchRobotList()
+  } catch (error) {
+    console.error('保存机器人失败:', error)
+    ElMessage.error('保存机器人失败')
+  }
+}
+
 onMounted(() => {
-  // 模拟数据
-  robotList.value = Array(15).fill(null).map((_, index) => ({
-    id: String(index + 1).padStart(2, '0'),
-    name: '大力神应急救援机器人',
-    type: '工业机器人',
-    application: '工业一类场景',
-    capability: '操作性能',
-    dataType: '——',
-    power: '——',
-    createTime: '2025/03/03'
-  }))
-  
+  fetchRobotList()
   calculateTableHeight()
 })
 
@@ -187,11 +278,8 @@ const handleDataCollection = () => {
 }
 
 const handleSearch = () => {
-  // 这里应该调用后端 API 进行搜索
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
+  currentPage.value = 1
+  fetchRobotList()
 }
 
 const resetFilter = () => {
@@ -217,18 +305,29 @@ const showAddDialog = () => {
   dialogType.value = 'add'
   robotForm.value = {
     name: '',
-    type: '',
-    application: '',
-    capability: '',
-    dataType: '',
-    power: ''
+    industry_type: '',
+    training_field_id: '',
+    skills: '',
+    status: '离线',
+    price: '',
+    serial_number: '',
+    product_location: '',
+    dimensions: '',
+    remarks: '',
+    awards: '',
+    recommendation_reason: '',
+    is_carousel: false,
+    carousel_add_time: ''
   }
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
   dialogType.value = 'edit'
-  robotForm.value = { ...row }
+  robotForm.value = { 
+    ...row,
+    training_field_id: row.training_field.id
+  }
   dialogVisible.value = true
 }
 
@@ -242,30 +341,12 @@ const handleDelete = (row) => {
       type: 'warning'
     }
   ).then(() => {
-    // 这里应该调用后端 API
-    robotList.value = robotList.value.filter(item => item.id !== row.id)
-    ElMessage.success('删除成功')
+    deleteRobot(row.id)
   }).catch(() => {})
 }
 
 const handleSubmit = () => {
-  // 这里应该调用后端 API
-  if (dialogType.value === 'add') {
-    const newRobot = {
-      ...robotForm.value,
-      id: String(robotList.value.length + 1).padStart(2, '0'),
-      createTime: new Date().toLocaleDateString()
-    }
-    robotList.value.push(newRobot)
-    ElMessage.success('添加成功')
-  } else {
-    const index = robotList.value.findIndex(item => item.id === robotForm.value.id)
-    if (index !== -1) {
-      robotList.value[index] = { ...robotForm.value }
-      ElMessage.success('修改成功')
-    }
-  }
-  dialogVisible.value = false
+  saveRobot(robotForm.value)
 }
 </script>
 
