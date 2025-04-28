@@ -2,30 +2,16 @@
   <div class="data-type-settings">
     <!-- 筛选区域 -->
     <div class="filter-section">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="类型名称">
-          <el-input v-model="filterForm.name" placeholder="请输入类型名称" clearable />
-        </el-form-item>
-        <el-form-item label="格式">
-          <el-select v-model="filterForm.format" placeholder="请选择格式" clearable>
-            <el-option label="数字" value="number" />
-            <el-option label="文本" value="text" />
-            <el-option label="日期" value="date" />
-            <el-option label="布尔" value="boolean" />
-          </el-select>
+      <el-form :inline="true" :model="filterForm" class="filter-form" ref="formRef" :rules="rules">
+        <el-form-item label="类型名称" prop="name">
+          <el-input v-model="filterForm.name" placeholder="请输入类型名称" clearable style="width: 200px" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetFilter">重置</el-button>
-        </el-form-item>
-      </el-form>
-      <div class="action-buttons">
-        <div class="left-buttons">
-          <el-button type="primary" @click="showAddDialog">
+          <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>新增数据类型
           </el-button>
-        </div>
-      </div>
+        </el-form-item>
+      </el-form>
     </div>
 
     <!-- 数据类型列表 -->
@@ -38,21 +24,10 @@
         v-loading="loading"
         :height="tableHeight"
       >
-        <el-table-column prop="id" label="编号" width="80" />
-        <el-table-column prop="name" label="类型名称" min-width="160" />
-        <el-table-column prop="description" label="描述" min-width="200" />
-        <el-table-column prop="format" label="格式" width="120">
+        <el-table-column type="index" label="序号" width="80" />
+        <el-table-column prop="name" label="类型名称" min-width="120" />
+        <el-table-column label="操作" width="80" fixed="right">
           <template #default="scope">
-            <el-tag :type="getFormatTagType(scope.row.format)">
-              {{ getFormatLabel(scope.row.format) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit" label="单位" width="100" />
-        <el-table-column prop="createTime" label="创建时间" width="120" />
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -73,13 +48,13 @@
       </div>
     </div>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- 编辑对话框 -->
     <el-dialog
-      :title="dialogType === 'add' ? '新增数据类型' : '编辑数据类型'"
+      title="编辑数据类型"
       v-model="dialogVisible"
       width="600px"
     >
-      <el-form :model="dataTypeForm" label-width="120px" :rules="rules" ref="formRef">
+      <el-form :model="dataTypeForm" label-width="120px" :rules="rules" ref="editFormRef">
         <el-form-item label="类型名称" prop="name">
           <el-input v-model="dataTypeForm.name" placeholder="请输入类型名称" />
         </el-form-item>
@@ -104,7 +79,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit">确定</el-button>
+          <el-button type="primary" @click="handleEditSubmit">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -112,37 +87,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch, computed } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import axios from 'axios'
+
+const API_BASE_URL = 'http://127.0.0.1:8000'
 
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(15)
-const total = ref(100)
+const total = ref(0)
 const tableHeight = ref(0)
+const formRef = ref(null)
+const editFormRef = ref(null)
 
 const filterForm = ref({
-  name: '',
-  format: ''
+  name: ''
 })
 
-const dataTypeList = ref([
-  {
-    id: '1',
-    name: '温度',
-    description: '环境温度数据',
-    format: 'number',
-    unit: '℃',
-    createTime: '2024/03/20',
-    validation: '>= -50 && <= 100'
-  }
-])
+const dataTypeList = ref([])
 
 const dialogVisible = ref(false)
-const dialogType = ref('add')
-const formRef = ref(null)
-
 const dataTypeForm = ref({
   name: '',
   description: '',
@@ -155,13 +121,32 @@ const rules = {
   name: [
     { required: true, message: '请输入类型名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: '请输入描述', trigger: 'blur' }
-  ],
-  format: [
-    { required: true, message: '请选择格式', trigger: 'change' }
   ]
+}
+
+// 获取数据类型列表
+const fetchDataTypeList = async () => {
+  loading.value = true
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/data-types`)
+    dataTypeList.value = response.data
+  } catch (error) {
+    console.error('获取数据类型列表失败:', error)
+    if (error.response?.status === 400) {
+      ElMessage.error(error.response.data.detail || '请求参数错误')
+    } else if (error.response?.status === 422) {
+      const detail = error.response.data.detail
+      if (Array.isArray(detail)) {
+        ElMessage.error(detail[0].msg)
+      } else {
+        ElMessage.error('数据验证失败')
+      }
+    } else {
+      ElMessage.error('获取数据类型列表失败')
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 // 计算表格高度
@@ -179,23 +164,37 @@ const calculateTableHeight = () => {
 window.addEventListener('resize', calculateTableHeight)
 
 onMounted(() => {
+  fetchDataTypeList()
   calculateTableHeight()
 })
 
-const handleSearch = () => {
-  // 这里应该调用后端 API 进行搜索
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
-}
-
-const resetFilter = () => {
-  filterForm.value = {
-    name: '',
-    format: ''
-  }
-  handleSearch()
+const handleAdd = () => {
+  formRef.value?.validate(async (valid) => {
+    if (valid) {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/data-types`, {
+          name: filterForm.value.name
+        })
+        ElMessage.success('添加成功')
+        filterForm.value.name = ''
+        fetchDataTypeList()
+      } catch (error) {
+        console.error('添加数据类型失败:', error)
+        if (error.response?.status === 400) {
+          ElMessage.error(error.response.data.detail || '请求参数错误')
+        } else if (error.response?.status === 422) {
+          const detail = error.response.data.detail
+          if (Array.isArray(detail)) {
+            ElMessage.error(detail[0].msg)
+          } else {
+            ElMessage.error('数据验证失败')
+          }
+        } else {
+          ElMessage.error('添加数据类型失败')
+        }
+      }
+    }
+  })
 }
 
 const handleSizeChange = (val) => {
@@ -208,20 +207,7 @@ const handleCurrentChange = (val) => {
   handleSearch()
 }
 
-const showAddDialog = () => {
-  dialogType.value = 'add'
-  dataTypeForm.value = {
-    name: '',
-    description: '',
-    format: '',
-    unit: '',
-    validation: ''
-  }
-  dialogVisible.value = true
-}
-
 const handleEdit = (row) => {
-  dialogType.value = 'edit'
   dataTypeForm.value = { ...row }
   dialogVisible.value = true
 }
@@ -235,10 +221,40 @@ const handleDelete = (row) => {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    dataTypeList.value = dataTypeList.value.filter(item => item.id !== row.id)
-    ElMessage.success('删除成功')
+  ).then(async () => {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/data-types/${row.id}`)
+      ElMessage.success('删除成功')
+      fetchDataTypeList()
+    } catch (error) {
+      console.error('删除数据类型失败:', error)
+      if (error.response?.status === 400) {
+        ElMessage.error(error.response.data.detail || '请求参数错误')
+      } else if (error.response?.status === 422) {
+        const detail = error.response.data.detail
+        if (Array.isArray(detail)) {
+          ElMessage.error(detail[0].msg)
+        } else {
+          ElMessage.error('数据验证失败')
+        }
+      } else {
+        ElMessage.error('删除数据类型失败')
+      }
+    }
   }).catch(() => {})
+}
+
+const handleEditSubmit = () => {
+  editFormRef.value?.validate((valid) => {
+    if (valid) {
+      const index = dataTypeList.value.findIndex(item => item.id === dataTypeForm.value.id)
+      if (index !== -1) {
+        dataTypeList.value[index] = { ...dataTypeForm.value }
+        ElMessage.success('修改成功')
+      }
+      dialogVisible.value = false
+    }
+  })
 }
 
 const getFormatTagType = (format) => {
@@ -260,29 +276,6 @@ const getFormatLabel = (format) => {
   }
   return labels[format] || format
 }
-
-const handleSubmit = () => {
-  formRef.value?.validate((valid) => {
-    if (valid) {
-      if (dialogType.value === 'add') {
-        const newDataType = {
-          ...dataTypeForm.value,
-          id: String(dataTypeList.value.length + 1),
-          createTime: new Date().toLocaleDateString()
-        }
-        dataTypeList.value.push(newDataType)
-        ElMessage.success('添加成功')
-      } else {
-        const index = dataTypeList.value.findIndex(item => item.id === dataTypeForm.value.id)
-        if (index !== -1) {
-          dataTypeList.value[index] = { ...dataTypeForm.value }
-          ElMessage.success('修改成功')
-        }
-      }
-      dialogVisible.value = false
-    }
-  })
-}
 </script>
 
 <style scoped>
@@ -293,7 +286,7 @@ const handleSubmit = () => {
 }
 
 .filter-section {
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   padding-bottom: 0;
 }
 
@@ -301,21 +294,39 @@ const handleSubmit = () => {
   margin-bottom: 4px;
 }
 
+:deep(.el-form--inline .el-form-item) {
+  margin-bottom: 8px;
+  margin-right: 15px;
+}
+
+:deep(.el-form--inline .el-form-item__content) {
+  margin-left: 1px;
+}
+
+:deep(.el-form-item__label) {
+  padding-right: 2px;
+}
+
+:deep(.el-input) {
+  width: 200px;
+}
+
+:deep(.el-button) {
+  padding: 6px 10px;
+  margin-left: 2px;
+}
+
 .action-buttons {
   display: flex;
   justify-content: flex-start;
   align-items: center;
   margin-bottom: 4px;
-  margin-top: 16px;
+  margin-top: 8px;
 }
 
-.left-buttons, .right-buttons {
+.left-buttons {
   display: flex;
-  gap: 16px;
-}
-
-.right-buttons {
-  margin-left: 24px;
+  gap: 8px;
 }
 
 :deep(.el-table) {
@@ -335,6 +346,11 @@ const handleSubmit = () => {
   background-color: #eef0f2;
   font-size: 13px;
   border: none;
+  border-right: 1px solid #dcdfe6;
+}
+
+:deep(.el-table th:last-child) {
+  border-right: none;
 }
 
 :deep(.el-table td) {
@@ -387,7 +403,6 @@ const handleSubmit = () => {
 }
 
 :deep(.el-table__row) {
-  border: none;
   height: 44px;
 }
 
@@ -399,46 +414,14 @@ const handleSubmit = () => {
   background-color: #eef0f2 !important;
 }
 
+:deep(.el-table__header-wrapper) {
+  border-bottom: 1px solid #dcdfe6;
+}
+
 :deep(.el-button--small) {
   padding: 6px 12px;
   font-size: 12px;
   height: 28px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px 40px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-:deep(.el-form-item) {
-  margin-bottom: 22px;
-  margin-right: 0;
-}
-
-:deep(.el-form--inline .el-form-item) {
-  margin-right: 32px;
-  margin-bottom: 0;
-}
-
-:deep(.el-form--inline .el-form-item__content) {
-  margin-left: 8px;
-}
-
-:deep(.el-select) {
-  width: 180px;
-}
-
-:deep(.el-input) {
-  width: 180px;
-}
-
-:deep(.el-button .el-icon) {
-  margin-right: 4px;
 }
 
 .pagination {

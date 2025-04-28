@@ -4,17 +4,17 @@
     <div class="filter-section">
       <el-form :inline="true" :model="filterForm" class="filter-form">
         <el-form-item label="机器人名称/编号">
-          <el-input v-model="filterForm.name_or_serial" placeholder="请输入名称或编号" clearable style="width: 180px" />
+          <el-input v-model="filterForm.name_or_serial" placeholder="请输入名称或编号" clearable style="width: 120px" />
         </el-form-item>
         <el-form-item label="机器人种类">
-          <el-select v-model="filterForm.industry_type" placeholder="请选择种类" clearable style="width: 160px">
+          <el-select v-model="filterForm.industry_type" placeholder="请选择种类" clearable style="width: 120px">
             <el-option label="工业机器人" value="工业机器人" />
             <el-option label="特种机器人" value="特种机器人" />
             <el-option label="服务机器人" value="服务机器人" />
           </el-select>
         </el-form-item>
         <el-form-item label="应用场景">
-          <el-select v-model="filterForm.training_field_id" placeholder="请选择应用场景" clearable style="width: 160px">
+          <el-select v-model="filterForm.training_field_id" placeholder="请选择应用场景" clearable style="width: 120px">
             <el-option
               v-for="field in trainingFieldList"
               :key="field.id"
@@ -38,7 +38,7 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             value-format="YYYYMMDD"
-            style="width: 240px"
+            style="width: 200px"
             :locale="locale"
           />
         </el-form-item>
@@ -73,32 +73,38 @@
         resizable
       >
         <el-table-column type="index" label="编号" width="80" />
-        <el-table-column prop="name" label="机器人名称" min-width="160">
+        <el-table-column prop="name" label="机器人名称" min-width="100">
           <template #default="scope">
             <el-link type="primary" @click="showDetail(scope.row)">{{ scope.row.name }}</el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="serial_number" label="型号" min-width="140" />
-        <el-table-column prop="industry_type" label="种类" width="120" />
-        <el-table-column prop="training_field.name" label="应用场景" width="140" />
-        <el-table-column prop="skills" label="技能" min-width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="serial_number" label="型号" min-width="80" />
+        <el-table-column prop="industry_type" label="种类" width="100" />
+        <el-table-column prop="training_field.name" label="应用场景" width="110" />
+        <el-table-column prop="skills" label="技能" min-width="35" />
+        <el-table-column prop="status" label="状态" width="70">
           <template #default="scope">
             <el-tag :type="scope.row.status === '在线' ? 'success' : 'info'">
               {{ scope.row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="company.name" label="企业" min-width="160" />
-        <el-table-column prop="create_date" label="创建时间" width="180">
+        <el-table-column prop="create_date" label="创建时间" width="160">
           <template #default="scope">
             {{ formatTimestamp(scope.row.create_date) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button 
+              size="small" 
+              :type="scope.row.is_carousel ? 'warning' : 'success'"
+              @click="handleCarousel(scope.row)"
+            >
+              {{ scope.row.is_carousel ? '取消轮播' : '轮播' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -257,7 +263,7 @@
     <el-dialog
       title="机器人详情"
       v-model="detailVisible"
-      width="1000px"
+      width="800px"
       class="detail-dialog"
       :close-on-click-modal="false"
     >
@@ -279,7 +285,7 @@
             </p>
             <p><span class="label">价格：</span>{{ currentRobot.price }}</p>
             <p><span class="label">产地：</span>{{ currentRobot.product_location }}</p>
-            <p><span class="label">创建时间：</span>{{ currentRobot.create_date }}</p>
+            <p><span class="label">创建时间：</span>{{ formatTimestamp(currentRobot.create_date) }}</p>
           </div>
         </div>
         <div class="detail-body">
@@ -309,10 +315,12 @@
               </div>
               <div class="detail-section">
                 <h3>数据记录</h3>
-                <div v-if="currentRobot.data_records && currentRobot.data_records.length > 0">
-                  <p v-for="(record, index) in currentRobot.data_records" :key="index">
-                    {{ record }}
-                  </p>
+                <div v-if="currentRobot.data_records && currentRobot.data_records.length > 0" class="data-records">
+                  <div v-for="(record, index) in currentRobot.data_records" :key="index" class="data-record-item">
+                    <span class="data-type">{{ record.data_type.name }}</span>
+                    <span class="collect-date">{{ formatCollectDate(record.collect_date) }}</span>
+                    <span class="count">数量: {{ record.count }}</span>
+                  </div>
                 </div>
                 <p v-else>暂无数据记录</p>
               </div>
@@ -320,6 +328,46 @@
           </div>
         </div>
       </div>
+    </el-dialog>
+
+    <!-- 数据采集弹窗 -->
+    <el-dialog
+      title="入库数据采集"
+      v-model="dataCollectionVisible"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="dataCollectionForm" label-width="100px" :rules="dataCollectionRules" ref="dataCollectionFormRef">
+        <el-form-item label="机器人" prop="robot_id">
+          <el-select v-model="dataCollectionForm.robot_id" placeholder="请选择机器人" style="width: 100%">
+            <el-option
+              v-for="robot in robotList"
+              :key="robot.id"
+              :label="`${robot.name}-${robot.serial_number}`"
+              :value="robot.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="数据类型" prop="data_type_id">
+          <el-select v-model="dataCollectionForm.data_type_id" placeholder="请选择数据类型" style="width: 100%">
+            <el-option
+              v-for="type in dataTypeList"
+              :key="type.id"
+              :label="type.name"
+              :value="type.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="数量" prop="count">
+          <el-input-number v-model="dataCollectionForm.count" :min="1" :max="9999" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dataCollectionVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleDataCollectionSubmit">确定</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -377,6 +425,28 @@ const companyList = ref([])
 const trainingFieldList = ref([])
 const detailVisible = ref(false)
 const currentRobot = ref({})
+
+const dataCollectionVisible = ref(false)
+const dataCollectionFormRef = ref(null)
+const dataTypeList = ref([])
+
+const dataCollectionForm = ref({
+  robot_id: '',
+  data_type_id: '',
+  count: 1
+})
+
+const dataCollectionRules = {
+  robot_id: [
+    { required: true, message: '请选择机器人', trigger: 'change' }
+  ],
+  data_type_id: [
+    { required: true, message: '请选择数据类型', trigger: 'change' }
+  ],
+  count: [
+    { required: true, message: '请输入数量', trigger: 'blur' }
+  ]
+}
 
 // 格式化时间戳
 const formatTimestamp = (timestamp) => {
@@ -541,9 +611,82 @@ onMounted(() => {
   calculateTableHeight()
 })
 
+// 获取数据类型列表
+const fetchDataTypeList = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/data-types`)
+    dataTypeList.value = response.data
+  } catch (error) {
+    console.error('获取数据类型列表失败:', error)
+    if (error.response?.status === 400) {
+      ElMessage.error(error.response.data.detail || '请求参数错误')
+    } else if (error.response?.status === 422) {
+      const detail = error.response.data.detail
+      if (Array.isArray(detail)) {
+        ElMessage.error(detail[0].msg)
+      } else {
+        ElMessage.error('数据验证失败')
+      }
+    } else {
+      ElMessage.error('获取数据类型列表失败')
+    }
+  }
+}
+
+// 打开数据采集弹窗
 const handleDataCollection = () => {
-  // 处理数据采集
-  ElMessage.success('开始数据采集')
+  dataCollectionForm.value = {
+    robot_id: '',
+    data_type_id: '',
+    count: 1
+  }
+  dataCollectionVisible.value = true
+  fetchDataTypeList()
+}
+
+// 提交数据采集
+const handleDataCollectionSubmit = () => {
+  dataCollectionFormRef.value?.validate(async (valid) => {
+    if (valid) {
+      try {
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const collectDate = `${year}${month}${day}`
+
+        await axios.post(`${API_BASE_URL}/api/data-records`, {
+          ...dataCollectionForm.value,
+          collect_date: collectDate
+        })
+        ElMessage.success('数据采集成功')
+        dataCollectionVisible.value = false
+        
+        // 更新当前机器人的数据记录
+        if (currentRobot.value.id === dataCollectionForm.value.robot_id) {
+          const response = await axios.get(`${API_BASE_URL}/api/robots/${currentRobot.value.id}`)
+          currentRobot.value = response.data
+        }
+        
+        // 刷新机器人列表
+        fetchRobotList()
+      } catch (error) {
+        console.error('数据采集失败:', error)
+        if (error.response?.status === 400) {
+          ElMessage.error(error.response.data.detail || '请求参数错误')
+        } else if (error.response?.status === 422) {
+          const detail = error.response.data.detail
+          if (Array.isArray(detail)) {
+            ElMessage.error(detail[0].msg)
+          } else {
+            ElMessage.error('数据验证失败')
+          }
+        } else {
+          ElMessage.error('数据采集失败')
+        }
+      }
+    }
+  })
 }
 
 const handleSearch = () => {
@@ -681,6 +824,31 @@ const showDetail = (row) => {
   currentRobot.value = row
   detailVisible.value = true
 }
+
+// 修改轮播处理函数
+const handleCarousel = async (row) => {
+  try {
+    const newStatus = !row.is_carousel
+    await axios.put(`${API_BASE_URL}/api/robots/${row.id}`, {
+      ...row,
+      is_carousel: newStatus
+    })
+    ElMessage.success(newStatus ? '已开启轮播' : '已取消轮播')
+    fetchRobotList()
+  } catch (error) {
+    console.error('更新轮播状态失败:', error)
+    ElMessage.error('更新轮播状态失败')
+  }
+}
+
+// 添加格式化采集日期的函数
+const formatCollectDate = (dateStr) => {
+  if (!dateStr) return ''
+  const year = dateStr.substring(0, 4)
+  const month = dateStr.substring(4, 6)
+  const day = dateStr.substring(6, 8)
+  return `${year}-${month}-${day}`
+}
 </script>
 
 <style scoped>
@@ -691,28 +859,42 @@ const showDetail = (row) => {
 }
 
 .filter-section {
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   padding-bottom: 0;
 }
 
 .filter-form {
   margin-bottom: 4px;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
 }
 
-:deep(.filter-form .el-form-item) {
-  margin-right: 16px;
-  margin-bottom: 0;
+:deep(.el-form--inline .el-form-item) {
+  margin-bottom: 8px;
+  margin-right: 2px;
 }
 
-:deep(.filter-form .el-form-item__label) {
-  padding-right: 8px;
+:deep(.el-form--inline .el-form-item__content) {
+  margin-left: 1px;
 }
 
-:deep(.filter-form .el-form-item__content) {
-  margin-left: 0;
+:deep(.el-form-item__label) {
+  padding-right: 2px;
+}
+
+:deep(.el-select) {
+  width: 110px;
+}
+
+:deep(.el-input) {
+  width: 110px;
+}
+
+:deep(.el-date-editor) {
+  width: 180px;
+}
+
+:deep(.el-button) {
+  padding: 6px 10px;
+  margin-left: 2px;
 }
 
 .action-buttons {
@@ -720,12 +902,12 @@ const showDetail = (row) => {
   justify-content: flex-start;
   align-items: center;
   margin-bottom: 4px;
-  margin-top: 16px;
+  margin-top: 8px;
 }
 
 .left-buttons, .right-buttons {
   display: flex;
-  gap: 16px;
+  gap: 8px;
 }
 
 .right-buttons {
@@ -879,7 +1061,7 @@ const showDetail = (row) => {
 }
 
 :deep(.el-form--inline .el-form-item) {
-  margin-right: 32px;
+  margin-right: 15px;
   margin-bottom: 0;
 }
 
@@ -1085,26 +1267,26 @@ const showDetail = (row) => {
 }
 
 .detail-dialog :deep(.el-dialog__body) {
-  padding: 20px 40px;
+  padding: 20px 30px;
   max-height: 70vh;
   overflow-y: auto;
 }
 
 .detail-content {
-  padding: 20px;
+  padding: 10px;
 }
 
 .detail-header {
   display: flex;
-  gap: 30px;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #ebeef5;
 }
 
 .detail-image {
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   border-radius: 4px;
   overflow: hidden;
   background-color: #f5f7fa;
@@ -1122,59 +1304,61 @@ const showDetail = (row) => {
 }
 
 .detail-info h2 {
-  margin: 0 0 15px 0;
-  font-size: 20px;
+  margin: 0 0 12px 0;
+  font-size: 18px;
   color: #303133;
 }
 
 .detail-info p {
-  margin: 8px 0;
+  margin: 6px 0;
   color: #606266;
   display: flex;
   align-items: center;
+  font-size: 13px;
 }
 
 .detail-body {
-  margin-top: 20px;
+  margin-top: 15px;
 }
 
 .detail-columns {
   display: flex;
-  gap: 20px;
+  gap: 15px;
 }
 
 .detail-column {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .detail-section {
-  padding: 15px;
+  padding: 12px;
   background-color: #f5f7fa;
   border-radius: 4px;
   flex: 1;
 }
 
 .detail-section h3 {
-  margin: 0 0 10px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 14px;
   color: #303133;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid #dcdfe6;
 }
 
 .detail-section p {
   margin: 0;
   color: #606266;
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 13px;
 }
 
 .label {
   color: #909399;
-  margin-right: 8px;
-  min-width: 80px;
+  margin-right: 6px;
+  min-width: 70px;
   display: inline-block;
 }
 
@@ -1189,5 +1373,85 @@ const showDetail = (row) => {
   background-color: #f0f2f5;
   border-color: #e4e7ed;
   color: #606266;
+}
+
+:deep(.el-input__inner) {
+  font-size: 14px;
+}
+
+:deep(.el-select .el-input__inner) {
+  font-size: 14px;
+}
+
+:deep(.el-date-editor .el-input__inner) {
+  font-size: 14px;
+}
+
+:deep(.el-select-dropdown__item) {
+  font-size: 14px;
+}
+
+:deep(.el-date-picker__header-label) {
+  font-size: 14px;
+}
+
+:deep(.el-date-table th) {
+  font-size: 14px;
+}
+
+:deep(.el-date-table td) {
+  font-size: 14px;
+}
+
+.data-records {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.data-record-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #409EFF;
+  padding: 2px 0;
+  border-bottom: 1px dashed #e4e7ed;
+  white-space: nowrap;
+}
+
+.data-record-item:last-child {
+  border-bottom: none;
+}
+
+.data-type {
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.collect-date {
+  color: #909399;
+  min-width: 80px;
+}
+
+.count {
+  color: #606266;
+}
+
+/* 自定义滚动条样式 */
+.data-records::-webkit-scrollbar {
+  width: 4px;
+}
+
+.data-records::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 2px;
+}
+
+.data-records::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
 }
 </style> 
