@@ -1,9 +1,12 @@
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 const route = useRoute()
 const isAdminRoute = computed(() => route.path === '/admin')
+
+const locale = zhCn
 
 onMounted(() => {
   // 加载jQuery
@@ -14,9 +17,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="app" :class="{ 'admin-page': isAdminRoute }">
-    <router-view></router-view>
-  </div>
+  <el-config-provider :locale="locale">
+    <div id="app" :class="{ 'admin-page': isAdminRoute }">
+      <router-view></router-view>
+    </div>
+  </el-config-provider>
 </template>
 
 <style>
