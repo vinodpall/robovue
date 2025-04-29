@@ -47,42 +47,6 @@
         />
       </div>
     </div>
-
-    <!-- 编辑对话框 -->
-    <el-dialog
-      title="编辑数据类型"
-      v-model="dialogVisible"
-      width="600px"
-    >
-      <el-form :model="dataTypeForm" label-width="120px" :rules="rules" ref="editFormRef">
-        <el-form-item label="类型名称" prop="name">
-          <el-input v-model="dataTypeForm.name" placeholder="请输入类型名称" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="dataTypeForm.description" type="textarea" placeholder="请输入描述" />
-        </el-form-item>
-        <el-form-item label="格式" prop="format">
-          <el-select v-model="dataTypeForm.format" placeholder="请选择格式">
-            <el-option label="数字" value="number" />
-            <el-option label="文本" value="text" />
-            <el-option label="日期" value="date" />
-            <el-option label="布尔" value="boolean" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="单位" prop="unit">
-          <el-input v-model="dataTypeForm.unit" placeholder="请输入单位" />
-        </el-form-item>
-        <el-form-item label="验证规则" prop="validation">
-          <el-input v-model="dataTypeForm.validation" type="textarea" placeholder="请输入验证规则" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleEditSubmit">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -90,9 +54,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import axios from 'axios'
-
-const API_BASE_URL = 'http://127.0.0.1:8000'
+import api from '../../api'
 
 const loading = ref(false)
 const currentPage = ref(1)
@@ -100,22 +62,12 @@ const pageSize = ref(15)
 const total = ref(0)
 const tableHeight = ref(0)
 const formRef = ref(null)
-const editFormRef = ref(null)
 
 const filterForm = ref({
   name: ''
 })
 
 const dataTypeList = ref([])
-
-const dialogVisible = ref(false)
-const dataTypeForm = ref({
-  name: '',
-  description: '',
-  format: '',
-  unit: '',
-  validation: ''
-})
 
 const rules = {
   name: [
@@ -128,22 +80,17 @@ const rules = {
 const fetchDataTypeList = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/data-types`)
-    dataTypeList.value = response.data
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
+    
+    const response = await api.get('/data-types', { params })
+    dataTypeList.value = response.items || []
+    total.value = response.total || 0
   } catch (error) {
     console.error('获取数据类型列表失败:', error)
-    if (error.response?.status === 400) {
-      ElMessage.error(error.response.data.detail || '请求参数错误')
-    } else if (error.response?.status === 422) {
-      const detail = error.response.data.detail
-      if (Array.isArray(detail)) {
-        ElMessage.error(detail[0].msg)
-      } else {
-        ElMessage.error('数据验证失败')
-      }
-    } else {
-      ElMessage.error('获取数据类型列表失败')
-    }
+    ElMessage.error('获取数据类型列表失败')
   } finally {
     loading.value = false
   }
@@ -164,52 +111,46 @@ const calculateTableHeight = () => {
 window.addEventListener('resize', calculateTableHeight)
 
 onMounted(() => {
-  fetchDataTypeList()
   calculateTableHeight()
+  fetchDataTypeList()
 })
 
-const handleAdd = () => {
-  formRef.value?.validate(async (valid) => {
-    if (valid) {
-      try {
-        const response = await axios.post(`${API_BASE_URL}/api/data-types`, {
-          name: filterForm.value.name
-        })
-        ElMessage.success('添加成功')
-        filterForm.value.name = ''
-        fetchDataTypeList()
-      } catch (error) {
-        console.error('添加数据类型失败:', error)
-        if (error.response?.status === 400) {
-          ElMessage.error(error.response.data.detail || '请求参数错误')
-        } else if (error.response?.status === 422) {
-          const detail = error.response.data.detail
-          if (Array.isArray(detail)) {
-            ElMessage.error(detail[0].msg)
-          } else {
-            ElMessage.error('数据验证失败')
-          }
-        } else {
-          ElMessage.error('添加数据类型失败')
-        }
-      }
+const handleAdd = async () => {
+  try {
+    await formRef.value?.validate()
+    if (filterForm.value.name.trim()) {
+      await api.post('/data-types', {
+        name: filterForm.value.name.trim()
+      })
+      ElMessage.success('添加成功')
+      filterForm.value.name = ''
+      fetchDataTypeList()
     }
-  })
+  } catch (error) {
+    if (error.response?.status === 400) {
+      ElMessage.error(error.response.data.detail || '请求参数错误')
+    } else if (error.response?.status === 422) {
+      const detail = error.response.data.detail
+      if (Array.isArray(detail)) {
+        ElMessage.error(detail[0].msg)
+      } else {
+        ElMessage.error('数据验证失败')
+      }
+    } else {
+      console.error('添加数据类型失败:', error)
+      ElMessage.error('添加数据类型失败')
+    }
+  }
 }
 
 const handleSizeChange = (val) => {
   pageSize.value = val
-  handleSearch()
+  fetchDataTypeList()
 }
 
 const handleCurrentChange = (val) => {
   currentPage.value = val
-  handleSearch()
-}
-
-const handleEdit = (row) => {
-  dataTypeForm.value = { ...row }
-  dialogVisible.value = true
+  fetchDataTypeList()
 }
 
 const handleDelete = (row) => {
@@ -223,58 +164,19 @@ const handleDelete = (row) => {
     }
   ).then(async () => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/data-types/${row.id}`)
+      await api.delete(`/data-types/${row.id}`)
       ElMessage.success('删除成功')
       fetchDataTypeList()
     } catch (error) {
       console.error('删除数据类型失败:', error)
-      if (error.response?.status === 400) {
-        ElMessage.error(error.response.data.detail || '请求参数错误')
-      } else if (error.response?.status === 422) {
-        const detail = error.response.data.detail
-        if (Array.isArray(detail)) {
-          ElMessage.error(detail[0].msg)
-        } else {
-          ElMessage.error('数据验证失败')
-        }
-      } else {
-        ElMessage.error('删除数据类型失败')
-      }
+      ElMessage.error('删除数据类型失败')
     }
   }).catch(() => {})
 }
 
-const handleEditSubmit = () => {
-  editFormRef.value?.validate((valid) => {
-    if (valid) {
-      const index = dataTypeList.value.findIndex(item => item.id === dataTypeForm.value.id)
-      if (index !== -1) {
-        dataTypeList.value[index] = { ...dataTypeForm.value }
-        ElMessage.success('修改成功')
-      }
-      dialogVisible.value = false
-    }
-  })
-}
-
-const getFormatTagType = (format) => {
-  const types = {
-    number: 'success',
-    text: 'info',
-    date: 'warning',
-    boolean: 'danger'
-  }
-  return types[format] || 'info'
-}
-
-const getFormatLabel = (format) => {
-  const labels = {
-    number: '数字',
-    text: '文本',
-    date: '日期',
-    boolean: '布尔'
-  }
-  return labels[format] || format
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchDataTypeList()
 }
 </script>
 

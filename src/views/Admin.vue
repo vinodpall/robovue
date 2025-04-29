@@ -31,6 +31,7 @@ import RobotManagement from '../components/admin/RobotManagement.vue'
 import MonitorManagement from '../components/admin/MonitorManagement.vue'
 import CompanySettings from '../components/admin/CompanySettings.vue'
 import DataTypeSettings from '../components/admin/DataTypeSettings.vue'
+import AwardSettings from '../components/admin/AwardSettings.vue'
 import OtherSettings from '../components/admin/OtherSettings.vue'
 
 const menuItems = [
@@ -38,6 +39,7 @@ const menuItems = [
   { key: 'monitor', label: '监控界面', component: MonitorManagement },
   { key: 'company', label: '企业设置', component: CompanySettings },
   { key: 'dataType', label: '数据类型设置', component: DataTypeSettings },
+  { key: 'award', label: '荣誉设置', component: AwardSettings },
   { key: 'other', label: '其他设置', component: OtherSettings }
 ]
 

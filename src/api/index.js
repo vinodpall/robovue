@@ -1,12 +1,53 @@
 import axios from 'axios'
 
-// 从环境变量或配置文件中获取API地址
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+// 从环境变量获取API地址
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
+
+// 添加请求拦截器
+api.interceptors.request.use(
+  config => {
+    // 可以在这里添加token等认证信息
+    return config
+  },
+  error => {
+    return Promise.reject(error)
+  }
+)
+
+// 添加响应拦截器
+api.interceptors.response.use(
+  response => {
+    return response.data
+  },
+  error => {
+    // 统一错误处理
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          // 未授权处理
+          break
+        case 403:
+          // 禁止访问处理
+          break
+        case 404:
+          // 资源不存在处理
+          break
+        case 500:
+          // 服务器错误处理
+          break
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 // 机器人相关接口
 export const robotApi = {

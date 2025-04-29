@@ -103,7 +103,7 @@
               :type="scope.row.is_carousel ? 'warning' : 'success'"
               @click="handleCarousel(scope.row)"
             >
-              {{ scope.row.is_carousel ? '取消轮播' : '轮播' }}
+              {{ scope.row.is_carousel ? '取消轮播' : '加入轮播' }}
             </el-button>
           </template>
         </el-table-column>
@@ -194,7 +194,7 @@
             <el-form-item label="图片">
               <el-upload
                 class="avatar-uploader"
-                :action="`${API_BASE_URL}/api/upload/image`"
+                :action="uploadAction"
                 :show-file-list="false"
                 :on-success="handleImageSuccess"
                 :before-upload="beforeImageUpload"
@@ -270,22 +270,23 @@
       <div class="detail-content">
         <div class="detail-header">
           <div class="detail-image">
-            <img :src="getImageUrl(currentRobot.image_url)" alt="机器人图片" />
+            <img v-if="currentRobot?.image_url" :src="getImageUrl(currentRobot.image_url)" alt="机器人图片" />
+            <div v-else class="no-image">暂无图片</div>
           </div>
           <div class="detail-info">
-            <h2>{{ currentRobot.name }}</h2>
-            <p><span class="label">型号：</span>{{ currentRobot.serial_number }}</p>
-            <p><span class="label">企业：</span>{{ currentRobot.company?.name }}</p>
-            <p><span class="label">类型：</span>{{ currentRobot.industry_type }}</p>
-            <p><span class="label">应用场景：</span>{{ currentRobot.training_field?.name }}</p>
+            <h2>{{ currentRobot?.name || '-' }}</h2>
+            <p><span class="label">型号：</span>{{ currentRobot?.serial_number || '-' }}</p>
+            <p><span class="label">企业：</span>{{ currentRobot?.company?.name || '-' }}</p>
+            <p><span class="label">类型：</span>{{ currentRobot?.industry_type || '-' }}</p>
+            <p><span class="label">应用场景：</span>{{ currentRobot?.training_field?.name || '-' }}</p>
             <p><span class="label">状态：</span>
-              <el-tag :type="currentRobot.status === '在线' ? 'success' : 'info'">
-                {{ currentRobot.status }}
+              <el-tag :type="currentRobot?.status === '在线' ? 'success' : 'info'">
+                {{ currentRobot?.status || '-' }}
               </el-tag>
             </p>
-            <p><span class="label">价格：</span>{{ currentRobot.price }}</p>
-            <p><span class="label">产地：</span>{{ currentRobot.product_location }}</p>
-            <p><span class="label">创建时间：</span>{{ formatTimestamp(currentRobot.create_date) }}</p>
+            <p><span class="label">价格：</span>{{ currentRobot?.price || '-' }}</p>
+            <p><span class="label">产地：</span>{{ currentRobot?.product_location || '-' }}</p>
+            <p><span class="label">创建时间：</span>{{ formatTimestamp(currentRobot?.create_date) }}</p>
           </div>
         </div>
         <div class="detail-body">
@@ -293,33 +294,33 @@
             <div class="detail-column">
               <div class="detail-section">
                 <h3>技能</h3>
-                <p>{{ currentRobot.skills }}</p>
+                <p>{{ currentRobot?.skills || '-' }}</p>
               </div>
               <div class="detail-section">
                 <h3>参数</h3>
-                <p>{{ currentRobot.dimensions }}</p>
+                <p>{{ currentRobot?.dimensions || '-' }}</p>
               </div>
               <div class="detail-section">
                 <h3>荣誉</h3>
-                <p>{{ currentRobot.awards }}</p>
+                <p>{{ currentRobot?.awards || '-' }}</p>
               </div>
             </div>
             <div class="detail-column">
               <div class="detail-section">
                 <h3>推荐理由</h3>
-                <p>{{ currentRobot.recommendation_reason }}</p>
+                <p>{{ currentRobot?.recommendation_reason || '-' }}</p>
               </div>
               <div class="detail-section">
                 <h3>备注</h3>
-                <p>{{ currentRobot.remarks }}</p>
+                <p>{{ currentRobot?.remarks || '-' }}</p>
               </div>
               <div class="detail-section">
                 <h3>数据记录</h3>
-                <div v-if="currentRobot.data_records && currentRobot.data_records.length > 0" class="data-records">
+                <div v-if="currentRobot?.data_records?.length > 0" class="data-records">
                   <div v-for="(record, index) in currentRobot.data_records" :key="index" class="data-record-item">
-                    <span class="data-type">{{ record.data_type.name }}</span>
-                    <span class="collect-date">{{ formatCollectDate(record.collect_date) }}</span>
-                    <span class="count">数量: {{ record.count }}</span>
+                    <span class="data-type">{{ record?.data_type?.name || '-' }}</span>
+                    <span class="collect-date">{{ formatCollectDate(record?.collect_date) }}</span>
+                    <span class="count">数量: {{ record?.count || 0 }}</span>
                   </div>
                 </div>
                 <p v-else>暂无数据记录</p>
@@ -376,10 +377,8 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload } from '@element-plus/icons-vue'
-import axios from 'axios'
+import api from '../../api'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-
-const API_BASE_URL = 'http://127.0.0.1:8000'
 
 // 配置Element Plus使用中文
 const locale = zhCn
@@ -448,6 +447,9 @@ const dataCollectionRules = {
   ]
 }
 
+// 获取上传地址
+const uploadAction = `${import.meta.env.VITE_API_BASE_URL}/api/upload/image`
+
 // 格式化时间戳
 const formatTimestamp = (timestamp) => {
   if (!timestamp) return ''
@@ -502,7 +504,7 @@ const formatTimestamp = (timestamp) => {
 const getImageUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  return `${API_BASE_URL}${url}`
+  return `${import.meta.env.VITE_API_BASE_URL}${url}`
 }
 
 // 计算表格高度
@@ -535,13 +537,11 @@ const fetchRobotList = async () => {
     }
     
     console.log('请求参数:', params)
-    console.log('请求URL:', `${API_BASE_URL}/api/robots`)
+    const response = await api.get('/robots', { params })
+    console.log('响应数据:', response)
     
-    const response = await axios.get(`${API_BASE_URL}/api/robots`, { params })
-    console.log('响应数据:', response.data)
-    
-    robotList.value = response.data.items
-    total.value = response.data.total
+    robotList.value = response.items
+    total.value = response.total
   } catch (error) {
     console.error('获取机器人列表失败:', error)
     console.error('错误详情:', error.response)
@@ -554,8 +554,8 @@ const fetchRobotList = async () => {
 // 获取企业列表
 const fetchCompanies = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/companies`)
-    companyList.value = response.data.items
+    const response = await api.get('/companies')
+    companyList.value = response.items
   } catch (error) {
     console.error('获取企业列表失败:', error)
     ElMessage.error('获取企业列表失败')
@@ -565,8 +565,8 @@ const fetchCompanies = async () => {
 // 获取应用场景列表
 const fetchTrainingFields = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/training-fields`)
-    trainingFieldList.value = response.data.items || []
+    const response = await api.get('/training-fields')
+    trainingFieldList.value = response.items || []
     console.log('应用场景列表:', trainingFieldList.value)
   } catch (error) {
     console.error('获取应用场景列表失败:', error)
@@ -577,7 +577,7 @@ const fetchTrainingFields = async () => {
 // 删除机器人
 const deleteRobot = async (id) => {
   try {
-    await axios.delete(`${API_BASE_URL}/api/robots/${id}`)
+    await api.delete(`/robots/${id}`)
     ElMessage.success('删除成功')
     fetchRobotList()
   } catch (error) {
@@ -590,10 +590,10 @@ const deleteRobot = async (id) => {
 const saveRobot = async (data) => {
   try {
     if (dialogType.value === 'add') {
-      await axios.post(`${API_BASE_URL}/api/robots`, data)
+      await api.post('/robots', data)
       ElMessage.success('添加成功')
     } else {
-      await axios.put(`${API_BASE_URL}/api/robots/${data.id}`, data)
+      await api.put(`/robots/${data.id}`, data)
       ElMessage.success('修改成功')
     }
     dialogVisible.value = false
@@ -614,8 +614,8 @@ onMounted(() => {
 // 获取数据类型列表
 const fetchDataTypeList = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/data-types`)
-    dataTypeList.value = response.data
+    const response = await api.get('/data-types')
+    dataTypeList.value = response
   } catch (error) {
     console.error('获取数据类型列表失败:', error)
     if (error.response?.status === 400) {
@@ -655,7 +655,7 @@ const handleDataCollectionSubmit = () => {
         const day = String(today.getDate()).padStart(2, '0')
         const collectDate = `${year}${month}${day}`
 
-        await axios.post(`${API_BASE_URL}/api/data-records`, {
+        await api.post('/data-records', {
           ...dataCollectionForm.value,
           collect_date: collectDate
         })
@@ -664,8 +664,8 @@ const handleDataCollectionSubmit = () => {
         
         // 更新当前机器人的数据记录
         if (currentRobot.value.id === dataCollectionForm.value.robot_id) {
-          const response = await axios.get(`${API_BASE_URL}/api/robots/${currentRobot.value.id}`)
-          currentRobot.value = response.data
+          const response = await api.get(`/robots/${currentRobot.value.id}`)
+          currentRobot.value = response
         }
         
         // 刷新机器人列表
@@ -820,16 +820,22 @@ const handleSubmit = () => {
   saveRobot(robotForm.value)
 }
 
-const showDetail = (row) => {
-  currentRobot.value = row
-  detailVisible.value = true
+const showDetail = async (row) => {
+  try {
+    const response = await api.get(`/robots/${row.id}`)
+    currentRobot.value = response
+    detailVisible.value = true
+  } catch (error) {
+    console.error('获取机器人详情失败:', error)
+    ElMessage.error('获取机器人详情失败')
+  }
 }
 
 // 修改轮播处理函数
 const handleCarousel = async (row) => {
   try {
     const newStatus = !row.is_carousel
-    await axios.put(`${API_BASE_URL}/api/robots/${row.id}`, {
+    await api.put(`/robots/${row.id}`, {
       ...row,
       is_carousel: newStatus
     })

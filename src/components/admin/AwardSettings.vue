@@ -1,10 +1,10 @@
 <template>
-  <div class="company-settings">
+  <div class="award-settings">
     <!-- 筛选区域 -->
     <div class="filter-section">
       <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="企业名称">
-          <el-input v-model="filterForm.name" placeholder="请输入企业名称" clearable />
+        <el-form-item label="荣誉名称">
+          <el-input v-model="filterForm.name" placeholder="请输入荣誉名称" clearable />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
@@ -14,16 +14,16 @@
       <div class="action-buttons">
         <div class="left-buttons">
           <el-button type="primary" @click="showAddDialog">
-            <el-icon><Plus /></el-icon>新增企业
+            <el-icon><Plus /></el-icon>新增荣誉
           </el-button>
         </div>
       </div>
     </div>
 
-    <!-- 企业列表 -->
+    <!-- 荣誉列表 -->
     <div class="table-section">
       <el-table 
-        :data="companyList" 
+        :data="awardList" 
         style="width: 100%" 
         border 
         stripe 
@@ -31,22 +31,19 @@
         :height="tableHeight"
       >
         <el-table-column prop="id" label="编号" width="80" />
-        <el-table-column prop="name" label="企业名称" min-width="160" />
-        <el-table-column label="荣誉" min-width="200">
+        <el-table-column prop="name" label="荣誉名称" min-width="160" />
+        <el-table-column prop="description" label="荣誉介绍" min-width="200" show-overflow-tooltip />
+        <el-table-column label="图片地址" min-width="200" show-overflow-tooltip>
           <template #default="scope">
-            <el-tag
-              v-for="award in scope.row.awards"
-              :key="award.id"
-              size="small"
-              class="award-tag"
+            <el-button 
+              size="small" 
+              type="primary" 
+              @click="handlePreview(scope.row)"
+              v-if="scope.row.image_url"
             >
-              {{ award.name }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="160">
-          <template #default="scope">
-            {{ formatTime(scope.row.createTime) }}
+              预览图片
+            </el-button>
+            <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
@@ -81,45 +78,58 @@
 
     <!-- 新增/编辑对话框 -->
     <el-dialog
-      :title="dialogType === 'add' ? '新增企业' : '编辑企业'"
+      :title="dialogType === 'add' ? '新增荣誉' : '编辑荣誉'"
       v-model="dialogVisible"
       width="600px"
     >
       <el-form 
-        :model="companyForm" 
+        :model="awardForm" 
         label-width="120px" 
         class="settings-form"
         :rules="rules"
-        ref="companyFormRef"
+        ref="awardFormRef"
       >
-        <el-form-item label="企业名称" prop="name">
-          <el-input v-model="companyForm.name" placeholder="请输入企业名称" />
+        <el-form-item label="荣誉名称" prop="name">
+          <el-input v-model="awardForm.name" placeholder="请输入荣誉名称" />
         </el-form-item>
         
-        <el-form-item label="企业介绍" prop="description">
+        <el-form-item label="荣誉介绍" prop="description">
           <el-input
-            v-model="companyForm.description"
+            v-model="awardForm.description"
             type="textarea"
             :rows="4"
-            placeholder="请输入企业介绍"
+            placeholder="请输入荣誉介绍"
           />
         </el-form-item>
         
-        <el-form-item label="企业荣誉" prop="award_ids">
-          <el-select
-            v-model="companyForm.award_ids"
-            multiple
-            filterable
-            placeholder="请选择企业荣誉"
-            style="width: 100%"
+        <el-form-item label="图片地址" prop="image_url">
+          <el-upload
+            class="upload-demo"
+            :action="uploadAction"
+            :headers="uploadHeaders"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :before-upload="beforeUpload"
+            :show-file-list="false"
           >
-            <el-option
-              v-for="award in awardOptions"
-              :key="award.id"
-              :label="award.name"
-              :value="award.id"
-            />
-          </el-select>
+            <el-button type="primary">上传图片</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持 jpg/png 格式，建议尺寸 800x600
+              </div>
+            </template>
+          </el-upload>
+          <div v-if="awardForm.image_url" class="preview-image">
+            <img :src="getImageUrl(awardForm.image_url)" alt="预览图片" />
+            <el-button 
+              type="danger" 
+              size="small" 
+              @click="awardForm.image_url = ''"
+              class="delete-image"
+            >
+              删除
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -129,11 +139,24 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 图片预览弹窗 -->
+    <el-dialog
+      title="图片预览"
+      v-model="previewVisible"
+      width="800px"
+      class="preview-dialog"
+    >
+      <div class="preview-content">
+        <img v-if="currentAward?.image_url" :src="getImageUrl(currentAward.image_url)" alt="荣誉图片" />
+        <div v-else class="no-image">暂无图片</div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch, computed } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '../../api'
@@ -141,36 +164,29 @@ import api from '../../api'
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(15)
-const total = ref(100)
+const total = ref(0)
 const tableHeight = ref(0)
 
 const filterForm = ref({
-  name: '',
+  name: ''
 })
 
-const companyList = ref([
-  {
-    id: '1',
-    name: '示例企业',
-    createTime: '2024/03/20',
-    is_carousel: false
-  }
-])
+const awardList = ref([])
 
 const dialogVisible = ref(false)
 const dialogType = ref('add')
-const companyFormRef = ref(null)
+const awardFormRef = ref(null)
 
-const companyForm = ref({
+const awardForm = ref({
   name: '',
   description: '',
-  award_ids: [],
+  image_url: '',
   is_carousel: false
 })
 
 const rules = {
   name: [
-    { required: true, message: '请输入企业名称', trigger: 'blur' },
+    { required: true, message: '请输入荣誉名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
   description: [
@@ -178,54 +194,60 @@ const rules = {
   ]
 }
 
-// 格式化时间函数
-const formatTime = (timestamp) => {
-  if (!timestamp) return ''
-  
-  // 处理数字格式的时间戳（秒级）
-  if (typeof timestamp === 'number' || /^\d{10}$/.test(timestamp)) {
-    const date = new Date(Number(timestamp) * 1000)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).replace(/\//g, '-')
+const previewVisible = ref(false)
+const currentAward = ref(null)
+
+const uploadAction = `${import.meta.env.VITE_API_BASE_URL}/api/upload/image`
+const uploadHeaders = {
+  'Authorization': `Bearer ${localStorage.getItem('token')}`
+}
+
+const beforeUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件！')
+    return false
   }
-  
-  // 处理字符串格式的日期（如：202504281054）
-  if (typeof timestamp === 'string' && /^\d{12}$/.test(timestamp)) {
-    const year = timestamp.substring(0, 4)
-    const month = timestamp.substring(4, 6)
-    const day = timestamp.substring(6, 8)
-    const hour = timestamp.substring(8, 10)
-    const minute = timestamp.substring(10, 12)
-    return `${year}-${month}-${day} ${hour}:${minute}:00`
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB！')
+    return false
   }
-  
-  // 如果是其他格式，尝试直接解析
+  return true
+}
+
+const handleUploadSuccess = (response) => {
+  if (response && response.url) {
+    awardForm.value.image_url = response.url
+    ElMessage.success('图片上传成功')
+  } else {
+    ElMessage.error('图片上传失败：未获取到图片URL')
+  }
+}
+
+const handleUploadError = () => {
+  ElMessage.error('上传失败，请重试')
+}
+
+// 获取荣誉列表
+const fetchAwardList = async () => {
+  loading.value = true
   try {
-    const date = new Date(timestamp)
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(/\//g, '-')
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      name: filterForm.value.name || undefined
     }
+    
+    const response = await api.get('/awards', { params })
+    awardList.value = response.items || []
+    total.value = response.total || 0
   } catch (error) {
-    console.error('时间格式化错误:', error)
+    console.error('获取荣誉列表失败:', error)
+    ElMessage.error('获取荣誉列表失败')
+  } finally {
+    loading.value = false
   }
-  
-  // 如果都处理不了，返回原始值
-  return timestamp
 }
 
 // 计算表格高度
@@ -244,13 +266,12 @@ window.addEventListener('resize', calculateTableHeight)
 
 onMounted(() => {
   calculateTableHeight()
-  fetchAwards()
-  fetchCompanyList()
+  fetchAwardList()
 })
 
 const handleSearch = () => {
   currentPage.value = 1
-  fetchCompanyList()
+  fetchAwardList()
 }
 
 const resetFilter = () => {
@@ -272,10 +293,10 @@ const handleCurrentChange = (val) => {
 
 const showAddDialog = () => {
   dialogType.value = 'add'
-  companyForm.value = {
+  awardForm.value = {
     name: '',
     description: '',
-    award_ids: [],
+    image_url: '',
     is_carousel: false
   }
   dialogVisible.value = true
@@ -283,16 +304,13 @@ const showAddDialog = () => {
 
 const handleEdit = (row) => {
   dialogType.value = 'edit'
-  companyForm.value = {
-    ...row,
-    award_ids: row.awards?.map(award => award.id) || []
-  }
+  awardForm.value = { ...row }
   dialogVisible.value = true
 }
 
 const handleDelete = (row) => {
   ElMessageBox.confirm(
-    `确定要删除企业"${row.name}"吗？`,
+    `确定要删除荣誉"${row.name}"吗？`,
     '警告',
     {
       confirmButtonText: '确定',
@@ -301,9 +319,9 @@ const handleDelete = (row) => {
     }
   ).then(async () => {
     try {
-      await api.delete(`/companies/${row.id}`)
+      await api.delete(`/awards/${row.id}`)
       ElMessage.success('删除成功')
-      fetchCompanyList()
+      fetchAwardList()
     } catch (error) {
       console.error('删除失败:', error)
       ElMessage.error('删除失败')
@@ -311,44 +329,19 @@ const handleDelete = (row) => {
   }).catch(() => {})
 }
 
-const handleAvatarSuccess = (response) => {
-  companyForm.value.logo = response.url
-}
-
-const beforeAvatarUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isImage) {
-    ElMessage.error('上传头像图片只能是图片格式!')
-    return false
-  }
-  if (!isLt2M) {
-    ElMessage.error('上传头像图片大小不能超过 2MB!')
-    return false
-  }
-  return true
-}
-
 const handleSubmit = () => {
-  companyFormRef.value?.validate(async (valid) => {
+  awardFormRef.value?.validate(async (valid) => {
     if (valid) {
       try {
-        // 准备提交的数据
-        const submitData = {
-          ...companyForm.value,
-          award_ids: companyForm.value.award_ids || [] // 确保 award_ids 是数组
-        }
-        
         if (dialogType.value === 'add') {
-          await api.post('/companies', submitData)
+          await api.post('/awards', awardForm.value)
           ElMessage.success('新增成功')
         } else {
-          await api.put(`/companies/${companyForm.value.id}`, submitData)
+          await api.put(`/awards/${awardForm.value.id}`, awardForm.value)
           ElMessage.success('保存成功')
         }
         dialogVisible.value = false
-        fetchCompanyList()
+        fetchAwardList()
       } catch (error) {
         console.error('保存失败:', error)
         ElMessage.error('保存失败')
@@ -360,62 +353,33 @@ const handleSubmit = () => {
 const handleCarousel = async (row) => {
   try {
     const newStatus = !row.is_carousel
-    await api.put(`/companies/${row.id}`, {
+    await api.put(`/awards/${row.id}`, {
       ...row,
       is_carousel: newStatus
     })
     ElMessage.success(newStatus ? '已开启轮播' : '已取消轮播')
-    fetchCompanyList()
+    fetchAwardList()
   } catch (error) {
     console.error('更新轮播状态失败:', error)
     ElMessage.error('更新轮播状态失败')
   }
 }
 
-const fetchAwards = async () => {
-  try {
-    const response = await api.get('/awards')
-    awardOptions.value = response.items || []
-  } catch (error) {
-    console.error('获取荣誉列表失败:', error)
-    ElMessage.error('获取荣誉列表失败')
-  }
+// 修改图片URL处理
+const getImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${import.meta.env.VITE_API_BASE_URL}${url}`
 }
 
-const fetchCompanyList = async () => {
-  loading.value = true
-  try {
-    const params = {
-      page: currentPage.value,
-      page_size: pageSize.value,
-      name: filterForm.value.name || undefined
-    }
-    
-    console.log('请求参数:', params) // 添加调试信息
-    
-    const response = await api.get('/companies', { params })
-    console.log('响应数据:', response) // 添加调试信息
-    
-    companyList.value = response.items.map(item => ({
-      ...item,
-      createTime: item.create_time || item.createTime,
-      award_ids: item.awards?.map(award => award.id) || []
-    }))
-    total.value = response.total
-  } catch (error) {
-    console.error('获取企业列表失败:', error)
-    ElMessage.error('获取企业列表失败')
-  } finally {
-    loading.value = false
-  }
+const handlePreview = (row) => {
+  currentAward.value = row
+  previewVisible.value = true
 }
-
-// 荣誉选项列表
-const awardOptions = ref([])
 </script>
 
 <style scoped>
-.company-settings {
+.award-settings {
   padding: 0;
   background-color: #fff;
   height: 100%;
@@ -625,62 +589,63 @@ const awardOptions = ref([])
   line-height: 28px;
 }
 
-.avatar-uploader {
-  width: 178px;
-  height: 178px;
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--el-transition-duration-fast);
-}
-
-.avatar-uploader:hover {
-  border-color: var(--el-color-primary);
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 178px;
-  height: 178px;
-  text-align: center;
-  line-height: 178px;
-}
-
-.avatar {
-  width: 178px;
-  height: 178px;
-  display: block;
-}
-
-.settings-card {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.settings-form {
-  margin-top: 20px;
-  padding: 0 20px;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 500;
-}
-
 :deep(.el-textarea__inner) {
   min-height: 120px !important;
 }
 
-.award-tag {
-  margin-right: 8px;
-  margin-bottom: 4px;
+.preview-dialog {
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+}
+
+.preview-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  
+  img {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+  }
+  
+  .no-image {
+    color: #999;
+    font-size: 14px;
+  }
+}
+
+.upload-demo {
+  width: 100%;
+}
+
+.el-upload__tip {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+}
+
+.preview-image {
+  margin-top: 12px;
+  position: relative;
+  display: inline-block;
+  
+  img {
+    max-width: 200px;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+  
+  .delete-image {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 4px 8px;
+  }
 }
 </style> 

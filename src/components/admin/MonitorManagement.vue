@@ -6,20 +6,16 @@
         <el-form-item label="视频名称">
           <el-input v-model="filterForm.name" placeholder="请输入视频名称" clearable />
         </el-form-item>
-        <el-form-item label="关联机器人">
-          <el-select v-model="filterForm.robotId" placeholder="请选择机器人" clearable>
-            <el-option
-              v-for="robot in robotList"
-              :key="robot.id"
-              :label="robot.name"
-              :value="robot.id"
-            />
-          </el-select>
-        </el-form-item>
         <el-form-item label="视频类型">
-          <el-select v-model="filterForm.type" placeholder="请选择视频类型" clearable>
-            <el-option label="实时监控" value="live" />
-            <el-option label="历史记录" value="history" />
+          <el-select 
+            v-model="filterForm.type" 
+            placeholder="请选择视频类型" 
+            clearable
+            style="width: 200px"
+          >
+            <el-option label="RTSP" value="RTSP" />
+            <el-option label="WEB" value="WEB" />
+            <el-option label="LOCAL" value="LOCAL" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -46,21 +42,32 @@
         v-loading="loading"
         :height="tableHeight"
       >
-        <el-table-column prop="id" label="编号" width="80" />
-        <el-table-column prop="name" label="视频名称" min-width="160" />
-        <el-table-column prop="robotId" label="关联机器人" width="160" />
-        <el-table-column prop="type" label="视频类型" width="120" />
-        <el-table-column prop="duration" label="时长" width="100" />
-        <el-table-column prop="createTime" label="创建时间" width="120" />
-        <el-table-column label="预览" width="100">
+        <el-table-column type="index" label="序号" width="80" :index="indexMethod" />
+        <el-table-column prop="name" label="监控点名称" min-width="160" />
+        <el-table-column prop="type" label="类型" width="100">
           <template #default="scope">
-            <el-button size="small" @click="handlePreview(scope.row)">预览</el-button>
+            <el-tag :type="scope.row.type === 'RTSP' ? 'success' : 'info'">
+              {{ scope.row.type }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column prop="url" label="视频地址" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" width="160">
+          <template #default="scope">
+            {{ formatTimestamp(scope.row.create_time) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button 
+              size="small" 
+              :type="scope.row.is_carousel ? 'warning' : 'success'"
+              @click="handleCarousel(scope.row)"
+            >
+              {{ scope.row.is_carousel ? '取消轮播' : '加入轮播' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -88,33 +95,38 @@
     >
       <el-form :model="videoForm" label-width="120px">
         <el-form-item label="视频名称" required>
-          <el-input v-model="videoForm.name" placeholder="请输入视频名称" />
+          <el-input 
+            v-model="videoForm.name" 
+            placeholder="请输入视频名称" 
+            style="width: 400px"
+          />
         </el-form-item>
-        <el-form-item label="关联机器人" required>
-          <el-select v-model="videoForm.robotId" placeholder="请选择机器人">
-            <el-option
-              v-for="robot in robotList"
-              :key="robot.id"
-              :label="robot.name"
-              :value="robot.id"
-            />
-          </el-select>
+        <el-form-item label="视频介绍">
+          <el-input 
+            v-model="videoForm.description" 
+            type="textarea" 
+            :rows="2"
+            placeholder="请输入视频介绍（选填）"
+            style="width: 400px"
+          />
         </el-form-item>
         <el-form-item label="视频类型" required>
-          <el-select v-model="videoForm.type" placeholder="请选择视频类型">
-            <el-option label="实时监控" value="live" />
-            <el-option label="历史记录" value="history" />
+          <el-select 
+            v-model="videoForm.type" 
+            placeholder="请选择视频类型"
+            style="width: 400px"
+          >
+            <el-option label="RTSP" value="RTSP" />
+            <el-option label="WEB" value="WEB" />
+            <el-option label="LOCAL" value="LOCAL" />
           </el-select>
         </el-form-item>
-        <el-form-item label="视频文件">
-          <el-upload
-            class="upload-demo"
-            action="/api/upload"
-            :on-success="handleUploadSuccess"
-            :before-upload="beforeUpload"
-          >
-            <el-button type="primary">选择文件</el-button>
-          </el-upload>
+        <el-form-item label="视频地址" required>
+          <el-input 
+            v-model="videoForm.url" 
+            placeholder="请输入视频地址"
+            style="width: 400px"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -147,30 +159,20 @@
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import api from '../../api'
 
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(15)
-const total = ref(100)
+const total = ref(0)
 const tableHeight = ref(0)
 
 const filterForm = ref({
   name: '',
-  robotId: '',
   type: ''
 })
 
-const videoList = ref([
-  {
-    id: '1',
-    name: '机器人巡检视频',
-    robotId: '01',
-    type: '实时监控',
-    duration: '10:00',
-    createTime: '2024/03/20',
-    url: 'https://example.com/video1.mp4'
-  }
-])
+const videoList = ref([])
 
 const robotList = ref([
   { id: '01', name: '大力神应急救援机器人' }
@@ -183,7 +185,7 @@ const currentVideo = ref(null)
 
 const videoForm = ref({
   name: '',
-  robotId: '',
+  description: '',
   type: '',
   url: ''
 })
@@ -207,17 +209,15 @@ onMounted(() => {
 })
 
 const handleSearch = () => {
-  // 这里应该调用后端 API 进行搜索
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-  }, 500)
+  console.log('执行搜索，当前筛选条件:', filterForm.value)
+  currentPage.value = 1
+  fetchVideoList()
 }
 
 const resetFilter = () => {
+  console.log('重置筛选条件')
   filterForm.value = {
     name: '',
-    robotId: '',
     type: ''
   }
   handleSearch()
@@ -230,14 +230,14 @@ const handleSizeChange = (val) => {
 
 const handleCurrentChange = (val) => {
   currentPage.value = val
-  handleSearch()
+  fetchVideoList()
 }
 
 const showAddDialog = () => {
   dialogType.value = 'add'
   videoForm.value = {
     name: '',
-    robotId: '',
+    description: '',
     type: '',
     url: ''
   }
@@ -246,23 +246,37 @@ const showAddDialog = () => {
 
 const handleEdit = (row) => {
   dialogType.value = 'edit'
-  videoForm.value = { ...row }
+  videoForm.value = {
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    type: row.type,
+    url: row.url
+  }
   dialogVisible.value = true
 }
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm(
-    `确定要删除视频"${row.name}"吗？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    videoList.value = videoList.value.filter(item => item.id !== row.id)
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除视频"${row.name}"吗？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    await api.delete(`/videos/${row.id}`)
     ElMessage.success('删除成功')
-  }).catch(() => {})
+    fetchVideoList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      console.error('错误详情:', error.response)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 const handlePreview = (row) => {
@@ -271,8 +285,12 @@ const handlePreview = (row) => {
 }
 
 const handleUploadSuccess = (response) => {
-  videoForm.value.url = response.url
-  ElMessage.success('上传成功')
+  if (response && response.url) {
+    videoForm.value.url = response.url
+    ElMessage.success('上传成功')
+  } else {
+    ElMessage.error('上传失败：未获取到视频URL')
+  }
 }
 
 const beforeUpload = (file) => {
@@ -281,28 +299,178 @@ const beforeUpload = (file) => {
     ElMessage.error('只能上传视频文件！')
     return false
   }
+  const isLt100M = file.size / 1024 / 1024 < 100
+  if (!isLt100M) {
+    ElMessage.error('视频大小不能超过 100MB！')
+    return false
+  }
   return true
 }
 
 const handleSubmit = () => {
   if (dialogType.value === 'add') {
-    const newVideo = {
-      ...videoForm.value,
-      id: String(videoList.value.length + 1),
-      createTime: new Date().toLocaleDateString(),
-      duration: '00:00' // 这里应该根据实际视频时长计算
-    }
-    videoList.value.push(newVideo)
-    ElMessage.success('添加成功')
+    handleCreate()
   } else {
-    const index = videoList.value.findIndex(item => item.id === videoForm.value.id)
-    if (index !== -1) {
-      videoList.value[index] = { ...videoForm.value }
-      ElMessage.success('修改成功')
-    }
+    handleUpdate()
   }
-  dialogVisible.value = false
 }
+
+// 获取视频列表
+const fetchVideoList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      name: filterForm.value.name || undefined,
+      video_type: filterForm.value.type || undefined
+    }
+    
+    console.log('筛选条件:', filterForm.value)
+    console.log('请求参数:', params)
+    
+    const response = await api.get('/videos', { params })
+    console.log('响应数据:', response)
+    
+    videoList.value = response.items.map(item => ({
+      ...item,
+      id: item.id,
+      name: item.name,
+      description: item.description || '',
+      url: item.url || '',
+      type: item.type,  // 直接使用后端返回的类型
+      is_carousel: item.is_carousel || false,
+      create_time: item.create_time || item.createTime,
+      carousel_add_time: item.carousel_add_time || null
+    }))
+    total.value = response.total
+  } catch (error) {
+    console.error('获取视频列表失败:', error)
+    console.error('错误详情:', error.response)
+    ElMessage.error('获取视频列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 序号计算方法
+const indexMethod = (index) => {
+  return (currentPage.value - 1) * pageSize.value + index + 1
+}
+
+// 创建视频
+const handleCreate = async () => {
+  try {
+    const submitData = {
+      name: videoForm.value.name,
+      description: videoForm.value.description,
+      type: videoForm.value.type,
+      url: videoForm.value.url
+    }
+    const response = await api.post('/videos', submitData)
+    ElMessage.success('创建成功')
+    dialogVisible.value = false
+    fetchVideoList()
+  } catch (error) {
+    console.error('创建失败:', error)
+    console.error('错误详情:', error.response)
+    ElMessage.error('创建失败')
+  }
+}
+
+// 更新视频
+const handleUpdate = async () => {
+  try {
+    const submitData = {
+      name: videoForm.value.name,
+      description: videoForm.value.description,
+      type: videoForm.value.type,
+      url: videoForm.value.url
+    }
+    const response = await api.put(`/videos/${videoForm.value.id}`, submitData)
+    ElMessage.success('更新成功')
+    dialogVisible.value = false
+    fetchVideoList()
+  } catch (error) {
+    console.error('更新失败:', error)
+    console.error('错误详情:', error.response)
+    ElMessage.error('更新失败')
+  }
+}
+
+// 修改轮播状态
+const handleCarousel = async (row) => {
+  try {
+    const newStatus = !row.is_carousel
+    const submitData = {
+      ...row,
+      is_carousel: newStatus,
+      carousel_add_time: newStatus ? new Date().toISOString() : null
+    }
+    await api.put(`/videos/${row.id}`, submitData)
+    ElMessage.success(newStatus ? '已开启轮播' : '已取消轮播')
+    fetchVideoList()
+  } catch (error) {
+    console.error('更新轮播状态失败:', error)
+    console.error('错误详情:', error.response)
+    ElMessage.error('更新轮播状态失败')
+  }
+}
+
+// 格式化时间戳
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return ''
+  
+  // 处理数字格式的时间戳（秒级）
+  if (typeof timestamp === 'number' || /^\d{10}$/.test(timestamp)) {
+    const date = new Date(Number(timestamp) * 1000)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/\//g, '-')
+  }
+  
+  // 处理字符串格式的日期（如：202504281054）
+  if (typeof timestamp === 'string' && /^\d{12}$/.test(timestamp)) {
+    const year = timestamp.substring(0, 4)
+    const month = timestamp.substring(4, 6)
+    const day = timestamp.substring(6, 8)
+    const hour = timestamp.substring(8, 10)
+    const minute = timestamp.substring(10, 12)
+    return `${year}-${month}-${day} ${hour}:${minute}:00`
+  }
+  
+  // 如果是其他格式，尝试直接解析
+  try {
+    const date = new Date(timestamp)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-')
+    }
+  } catch (error) {
+    console.error('时间格式化错误:', error)
+  }
+  
+  // 如果都处理不了，返回原始值
+  return timestamp
+}
+
+onMounted(() => {
+  fetchVideoList()
+  calculateTableHeight()
+})
 </script>
 
 <style scoped>
@@ -326,7 +494,7 @@ const handleSubmit = () => {
   justify-content: flex-start;
   align-items: center;
   margin-bottom: 4px;
-  margin-top: 16px;
+  margin-top: -10px;
 }
 
 .left-buttons, .right-buttons {
@@ -429,36 +597,45 @@ const handleSubmit = () => {
   padding: 20px 40px;
 }
 
+:deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #606266;
+}
+
+:deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #c0c4cc inset;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset;
+}
+
+:deep(.el-textarea__inner) {
+  min-height: 60px !important;
+  resize: vertical;
+}
+
+:deep(.el-select) {
+  width: 200px;
+}
+
+:deep(.el-input) {
+  width: 200px;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-:deep(.el-form-item) {
-  margin-bottom: 22px;
-  margin-right: 0;
-}
-
-:deep(.el-form--inline .el-form-item) {
-  margin-right: 32px;
-  margin-bottom: 0;
-}
-
-:deep(.el-form--inline .el-form-item__content) {
-  margin-left: 8px;
-}
-
-:deep(.el-select) {
-  width: 180px;
-}
-
-:deep(.el-input) {
-  width: 180px;
-}
-
-:deep(.el-button .el-icon) {
-  margin-right: 4px;
+  margin-top: 8px;
 }
 
 .pagination {
