@@ -615,7 +615,8 @@ onMounted(() => {
 const fetchDataTypeList = async () => {
   try {
     const response = await api.get('/data-types')
-    dataTypeList.value = response
+    dataTypeList.value = response.items || []
+    console.log('数据类型列表:', dataTypeList.value)
   } catch (error) {
     console.error('获取数据类型列表失败:', error)
     if (error.response?.status === 400) {
