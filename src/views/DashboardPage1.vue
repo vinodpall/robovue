@@ -10,34 +10,34 @@
               <div ref="pieChart1" class="pie-chart"></div>
               <div class="pie-legend">
                 <div class="legend-item">
-                  <span class="legend-text">工业级机器人</span>
-                  <span class="legend-value">40%</span>
+                  <span class="legend-text">工业机器人</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.all_robots[0]?.percentage || 0 }}%</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-text">特种机器人</span>
-                  <span class="legend-value">30%</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.all_robots[1]?.percentage || 0 }}%</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-text">服务机器人</span>
-                  <span class="legend-value">30%</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.all_robots[2]?.percentage || 0 }}%</span>
                 </div>
               </div>
             </div>
             <div class="pie-section">
-              <div class="pie-title">3月内受训机器人种类分布</div>
+              <div class="pie-title">{{ currentMonth }}月内受训机器人种类分布</div>
               <div ref="pieChart2" class="pie-chart"></div>
               <div class="pie-legend">
                 <div class="legend-item">
-                  <span class="legend-text">工业级机器人</span>
-                  <span class="legend-value">45%</span>
+                  <span class="legend-text">工业机器人</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.training_robots[0]?.percentage || 0 }}%</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-text">特种机器人</span>
-                  <span class="legend-value">25%</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.training_robots[1]?.percentage || 0 }}%</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-text">服务机器人</span>
-                  <span class="legend-value">30%</span>
+                  <span class="legend-value">{{ robotTypeAnalysis.training_robots[2]?.percentage || 0 }}%</span>
                 </div>
               </div>
             </div>
@@ -50,21 +50,9 @@
         <div class="chart-item">
           <h3>受训机器人技能分布</h3>
           <div class="stats-container">
-            <div class="stat-item">
-              <div class="stat-label">操作性能</div>
-              <div class="stat-value">012<span class="unit">台</span></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">移动性能</div>
-              <div class="stat-value">010<span class="unit">台</span></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">交互性能</div>
-              <div class="stat-value">016<span class="unit">台</span></div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">其他</div>
-              <div class="stat-value">031<span class="unit">台</span></div>
+            <div class="stat-item" v-for="item in robotSkillStats" :key="item.skill">
+              <div class="stat-label">{{ item.skill }}</div>
+              <div class="stat-value">{{ item.count.toString().padStart(3, '0') }}<span class="unit">台</span></div>
             </div>
           </div>
         </div>
@@ -94,24 +82,24 @@
               <!-- 中心内容 -->
               <div class="inner-content">
                 <div class="label">总数</div>
-                <div class="value">60</div>
+                <div class="value">{{ robotStatusStats.total }}</div>
               </div>
             </div>
             <div class="legend">
               <div class="legend-item">
                 <span class="legend-color online"></span>
                 <span>在线</span>
-                <span class="legend-value">60</span>
+                <span class="legend-value">{{ robotStatusStats.online }}</span>
               </div>
               <div class="legend-item">
                 <span class="legend-color offline"></span>
                 <span>离线</span>
-                <span class="legend-value">30</span>
+                <span class="legend-value">{{ robotStatusStats.offline }}</span>
               </div>
               <div class="legend-item">
                 <span class="legend-color error"></span>
                 <span>故障</span>
-                <span class="legend-value">15</span>
+                <span class="legend-value">{{ robotStatusStats.fault }}</span>
               </div>
             </div>
           </div>
@@ -119,8 +107,8 @@
         <div class="chart-item wide-item">
           <h3>具身智能入库数据</h3>
           <div class="data-stats">
-            <div class="data-stat">总采集：1.2W</div>
-            <div class="data-stat">今日采集：0.3K</div>
+            <div class="data-stat">总采集：{{ totalCollect }}条</div>
+            <div class="data-stat">今日采集：{{ todayCollect }}条</div>
           </div>
           <div class="data-container">
             <div class="data-list">
@@ -131,12 +119,12 @@
               </div>
               <div class="list-content">
                 <div class="list-scroll">
-                  <div class="list-item" v-for="(item, index) in displayData" :key="index">
+                  <div class="list-item" v-for="(item, index) in dataRecords" :key="index">
                     <span>{{ item.name }}</span>
                     <span>{{ item.type }}</span>
                     <span>{{ item.value }}</span>
                   </div>
-                  <div class="list-item" v-for="(item, index) in displayData" :key="'clone-'+index">
+                  <div class="list-item" v-for="(item, index) in dataRecords" :key="'clone-'+index">
                     <span>{{ item.name }}</span>
                     <span>{{ item.type }}</span>
                     <span>{{ item.value }}</span>
@@ -153,7 +141,7 @@
       <div class="chart-container">
         <div class="chart-item company-frame">
           <h3>受训机器人企业</h3>
-          <div class="company-title">《历史总数量：97家》</div>
+          <div class="company-title">《历史总数量：{{ totalCompanies }}家》</div>
           <div class="company-list">
             <div class="company-scroll">
               <div v-for="(company, index) in visibleCompanies" 
@@ -206,6 +194,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
+import api from '../api'
 
 // 导入awards图片
 import awardsImg from '../assets/awards.png'
@@ -220,9 +209,270 @@ const lineChart1 = ref(null)
 const lineChart3 = ref(null)
 
 // 数据
-const weeklyCount = ref(50)
-const monthlyCount = ref(200)
+const weeklyCount = ref(0)
+const monthlyCount = ref(0)
 const companyIndex = ref(0)
+
+// 添加机器人类型分析数据
+const robotTypeAnalysis = ref({
+  all_robots: [],
+  training_robots: []
+})
+
+// 添加场景分布数据
+const trainingFieldsData = ref([])
+
+// 添加技能分布数据
+const robotSkillStats = ref([
+  { skill: '操作性能', count: 0 },
+  { skill: '移动性能', count: 0 },
+  { skill: '交互性能', count: 0 },
+  { skill: '其他', count: 0 }
+])
+
+// 添加机器人状态数据
+const robotStatusStats = ref({
+  online: 0,
+  offline: 0,
+  fault: 0,
+  total: 0
+})
+
+// 添加数据记录相关数据
+const dataTypeStats = ref([])
+const dataRecords = ref([])
+const totalCollect = ref(0)
+const todayCollect = ref(0)
+
+// 添加企业数据
+const companies = ref([])
+const totalCompanies = ref(0)
+
+// 添加荣誉数据
+const honors = ref([])
+const currentHonorIndex = ref(0)
+
+// 添加入场人数统计数据
+const visitorStats = ref([])
+
+// 获取机器人类型分析数据
+const fetchRobotTypeAnalysis = async () => {
+  try {
+    const response = await api.get('/robot-types/analysis')
+    // 确保数据按照固定顺序排列
+    const order = ['工业机器人', '特种机器人', '服务机器人']
+    robotTypeAnalysis.value = {
+      all_robots: order.map(type => 
+        response.all_robots.find(item => item.type === type) || { type, count: 0, percentage: 0 }
+      ),
+      training_robots: order.map(type => 
+        response.training_robots.find(item => item.type === type) || { type, count: 0, percentage: 0 }
+      )
+    }
+    // 重新初始化图表
+    initCharts()
+  } catch (error) {
+    console.error('获取机器人类型分析数据失败:', error)
+  }
+}
+
+// 获取场景分布数据
+const fetchTrainingFieldsData = async () => {
+  try {
+    const response = await api.get('/training-fields/robot-stats')
+    trainingFieldsData.value = response
+    // 更新柱状图
+    updateBarChart()
+  } catch (error) {
+    console.error('获取场景分布数据失败:', error)
+  }
+}
+
+// 获取技能分布数据
+const fetchRobotSkillStats = async () => {
+  try {
+    const response = await api.get('/robots/skill-stats')
+    // 保证顺序与页面一致
+    const order = ['操作性能', '移动性能', '交互性能', '其他']
+    robotSkillStats.value = order.map(skill =>
+      response.find(item => item.skill === skill) || { skill, count: 0 }
+    )
+  } catch (error) {
+    console.error('获取机器人技能分布数据失败:', error)
+  }
+}
+
+// 获取机器人状态数据
+const fetchRobotStatusStats = async () => {
+  try {
+    const response = await api.get('/robots/status-stats')
+    robotStatusStats.value = response
+  } catch (error) {
+    console.error('获取机器人状态数据失败:', error)
+  }
+}
+
+// 获取数据类型统计数据
+const fetchDataTypeStats = async () => {
+  try {
+    const response = await api.get('/data-records/type-stats')
+    dataTypeStats.value = response.type_stats
+    // 更新总采集量和今日采集量
+    totalCollect.value = response.total_count
+    todayCollect.value = response.today_count
+    // 更新柱状图
+    updateDataTypeChart()
+  } catch (error) {
+    console.error('获取数据类型统计数据失败:', error)
+  }
+}
+
+// 获取数据记录列表
+const fetchDataRecords = async () => {
+  try {
+    const response = await api.get('/data-records')
+    // 只取需要的字段
+    dataRecords.value = response.items.map(item => ({
+      name: item.robot.name,
+      type: item.data_type.name,
+      value: item.count
+    }))
+    // 计算总采集量
+    totalCollect.value = response.total
+    // 计算今日采集量（假设第一条是今天的）
+    todayCollect.value = response.items[0]?.count || 0
+  } catch (error) {
+    console.error('获取数据记录列表失败:', error)
+  }
+}
+
+// 获取企业数据
+const fetchCompanies = async () => {
+  try {
+    const response = await api.get('/companies')
+    // 保存总数
+    totalCompanies.value = response.items.length
+    // 只保留is_carousel为true的企业用于滚动显示
+    companies.value = response.items.filter(company => company.is_carousel)
+    // 开始企业名称滚动
+    startCompanyScroll()
+  } catch (error) {
+    console.error('获取企业数据失败:', error)
+  }
+}
+
+// 开始企业名称滚动
+const startCompanyScroll = () => {
+  setInterval(() => {
+    if (companies.value.length > 0) {
+      companyIndex.value = (companyIndex.value + 1) % companies.value.length
+    }
+  }, 3000)
+}
+
+// 计算要显示的5家公司
+const visibleCompanies = computed(() => {
+  if (!companies.value.length) return []
+  
+  const total = companies.value.length
+  let result = []
+  for (let i = 0; i < 5; i++) {
+    const index = (companyIndex.value + i) % total
+    result.push({
+      name: companies.value[index]?.name || '',
+      isActive: i === 2 // 中间位置的索引为2
+    })
+  }
+  return result
+})
+
+// 更新饼图
+const updatePieCharts = () => {
+  if (!pieChart1.value || !pieChart2.value) return
+  
+  // 更新第一个饼图（累计受训机器人种类分布）
+  const chart1 = echarts.init(pieChart1.value, null, {
+    devicePixelRatio: window.devicePixelRatio * 2
+  })
+  
+  const allRobotsData = robotTypeAnalysis.value.all_robots.map(item => ({
+    value: item.percentage,
+    name: item.type
+  }))
+  
+  chart1.setOption({
+    tooltip: {
+      trigger: 'item'
+    },
+    series: [{
+      type: 'pie',
+      radius: ['50%', '75%'],
+      avoidLabelOverlap: false,
+      label: {
+        show: false
+      },
+      data: allRobotsData,
+      color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
+    }]
+  })
+
+  // 更新第二个饼图（3月内受训机器人种类分布）
+  const chart2 = echarts.init(pieChart2.value, null, {
+    devicePixelRatio: window.devicePixelRatio * 2
+  })
+  
+  const trainingRobotsData = robotTypeAnalysis.value.training_robots.map(item => ({
+    value: item.percentage,
+    name: item.type
+  }))
+  
+  chart2.setOption({
+    tooltip: {
+      trigger: 'item'
+    },
+    series: [{
+      type: 'pie',
+      radius: ['50%', '75%'],
+      avoidLabelOverlap: false,
+      label: {
+        show: false
+      },
+      data: trainingRobotsData,
+      color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
+    }]
+  })
+
+  // 更新图例数据
+  updateLegends()
+}
+
+// 更新图例数据
+const updateLegends = () => {
+  const allRobots = robotTypeAnalysis.value.all_robots
+  const trainingRobots = robotTypeAnalysis.value.training_robots
+
+  // 更新第一个图表的图例
+  const firstLegend = document.querySelector('.pie-section:first-child .pie-legend')
+  if (firstLegend) {
+    firstLegend.innerHTML = allRobots.map(item => `
+      <div class="legend-item">
+        <span class="legend-text">${item.type}</span>
+        <span class="legend-value">${item.percentage}%</span>
+      </div>
+    `).join('')
+  }
+
+  // 更新第二个图表的图例
+  const secondLegend = document.querySelector('.pie-section:nth-child(2) .pie-legend')
+  if (secondLegend) {
+    secondLegend.innerHTML = trainingRobots.map(item => `
+      <div class="legend-item">
+        <span class="legend-text">${item.type}</span>
+        <span class="legend-value">${item.percentage}%</span>
+      </div>
+    `).join('')
+  }
+}
 
 // 修改数据为6条
 const robotData = [
@@ -239,61 +489,39 @@ const robotData = [
 // 复制一份数据用于无缝滚动
 const displayData = ref([...robotData, ...robotData])
 
-const companies = [
-  '上海新时达电气股份有限公司',
-  '杭州云深处科技有限公司',
-  '帝蛮神（上海）科技有限公司',
-  '珞石机器人集团股份有限公司',
-  '松灵机器人有限公司',
-  '智能机器人科技有限公司',
-  '未来机器人研究院',
-  '创新智能科技有限公司',
-  '先进机器人系统有限公司',
-  '智慧机器人工程有限公司'
-]
-
-// 计算要显示的5家公司
-const visibleCompanies = computed(() => {
-  const total = companies.length
-  let result = []
-  for (let i = 0; i < 5; i++) {
-    const index = (companyIndex.value + i) % total
-    result.push({
-      name: companies[index],
-      isActive: i === 2 // 中间位置的索引为2
-    })
+// 获取荣誉数据
+const fetchHonors = async () => {
+  try {
+    const response = await api.get('/awards')
+    // 只保留is_carousel为true的荣誉
+    honors.value = response.items
+      .filter(honor => honor.is_carousel)
+      .map(honor => ({
+        title: honor.name,
+        image: import.meta.env.VITE_API_BASE_URL + honor.image_url
+      }))
+  } catch (error) {
+    console.error('获取荣誉数据失败:', error)
   }
-  return result
-})
-
-const honors = ref([
-  {
-    title: '上海市首家全场景机器人综合训练场',
-    image: awardsImg
-  },
-  {
-    title: '机器人训练示范基地',
-    image: awardsImg2
-  },
-  {
-    title: '智能机器人创新中心',
-    image: awardsImg3
-  }
-])
-
-const currentHonorIndex = ref(0)
+}
 
 const nextHonor = () => {
-  currentHonorIndex.value = (currentHonorIndex.value + 1) % honors.value.length
+  if (honors.value.length > 0) {
+    currentHonorIndex.value = (currentHonorIndex.value + 1) % honors.value.length
+  }
 }
 
 const prevHonor = () => {
-  currentHonorIndex.value = currentHonorIndex.value === 0 
-    ? honors.value.length - 1 
-    : currentHonorIndex.value - 1
+  if (honors.value.length > 0) {
+    currentHonorIndex.value = currentHonorIndex.value === 0 
+      ? honors.value.length - 1 
+      : currentHonorIndex.value - 1
+  }
 }
 
 const visibleHonors = computed(() => {
+  if (!honors.value.length) return []
+  
   const total = honors.value.length
   let result = []
   for (let i = 0; i < 3; i++) {
@@ -327,11 +555,10 @@ const initCharts = () => {
       label: {
         show: false
       },
-      data: [
-        { value: 40, name: '工业级机器人' },
-        { value: 30, name: '特种机器人' },
-        { value: 30, name: '服务机器人' }
-      ],
+      data: robotTypeAnalysis.value.all_robots.map(item => ({
+        value: item.percentage,
+        name: item.type
+      })),
       color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
     }]
   })
@@ -351,123 +578,18 @@ const initCharts = () => {
       label: {
         show: false
       },
-      data: [
-        { value: 45, name: '工业级机器人' },
-        { value: 25, name: '特种机器人' },
-        { value: 30, name: '服务机器人' }
-      ],
+      data: robotTypeAnalysis.value.training_robots.map(item => ({
+        value: item.percentage,
+        name: item.type
+      })),
       color: ['rgba(73, 143, 225, 1)', 'rgba(124, 219, 122, 1)', 'rgba(255, 149, 84, 1)']
     }]
   })
 
   // 初始化柱状图
-  const myBarChart = echarts.init(barChart.value, null, {
-    devicePixelRatio: window.devicePixelRatio * 2
-  })
-  myBarChart.setOption({
-    grid: {
-      left: '6%',
-      right: '5%',
-      bottom: '8%',
-      top: '2%',
-      containLabel: true
-    },
-    tooltip: { 
-      trigger: 'axis',
-      axisPointer: { 
-        type: 'shadow' 
-      }
-    },
-    xAxis: {
-      type: 'category',
-      data: [
-        '工业一类场景',
-        '工业二类场景',
-        '工业三类场景',
-        '公共商业场景',
-        '居家生活场景',
-        '医疗康养场景',
-        '教育科研场景',
-        '市政运维场景',
-        '农林野外场景',
-        '低空水域场景'
-      ],
-      axisLabel: {
-        color: '#FFFFFF',
-        interval: 0,
-        fontSize: 6,
-        margin: 12,
-        fontWeight: 'bold'
-      },
-      axisTick: {
-        show: false
-      },
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
-        }
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '受训机器人数量（台）',
-      nameLocation: 'middle',
-      nameGap: 30,
-      nameRotate: 90,
-      nameTextStyle: {
-        color: '#FFFFFF',
-        fontSize: 9,
-        fontWeight: 'bold',
-        padding: [0, 0, 0, -15]
-      },
-      max: 300,
-      interval: 50,
-      axisLabel: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold'
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
-        }
-      },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
-        }
-      }
-    },
-    series: [{
-      name: '机器人数量',
-      type: 'bar',
-      barWidth: '35%',
-      data: [
-        {value: 280, itemStyle: {color: '#2B85E4'}},
-        {value: 236, itemStyle: {color: '#308CE8'}},
-        {value: 217, itemStyle: {color: '#3593EC'}},
-        {value: 217, itemStyle: {color: '#3A9AF0'}},
-        {value: 190, itemStyle: {color: '#3FA1F4'}},
-        {value: 149, itemStyle: {color: '#44A8F8'}},
-        {value: 123, itemStyle: {color: '#49AFFC'}},
-        {value: 101, itemStyle: {color: '#4EB6FF'}},
-        {value: 75, itemStyle: {color: '#53BDFF'}},
-        {value: 53, itemStyle: {color: '#58C4FF'}}
-      ],
-      label: {
-        show: true,
-        position: 'top',
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        formatter: '{c}台'
-      },
-      itemStyle: {
-        borderRadius: [4, 4, 0, 0]
-      }
-    }]
-  })
+  if (trainingFieldsData.value.length > 0) {
+    updateBarChart()
+  }
 
   // 初始化折线图
   const chart = echarts.init(lineChart1.value, null, {
@@ -501,7 +623,7 @@ const initCharts = () => {
     },
     xAxis: {
       type: 'category',
-      data: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+      data: dataTypeStats.value.map(item => item.type_name),
       axisLabel: {
         show: false
       },
@@ -526,98 +648,30 @@ const initCharts = () => {
         }
       }
     },
-    series: [
-      {
-        name: '运动控制数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 10,
-        data: [2000, null, null, null, null, null, null, null, null, null],
-        itemStyle: { color: '#FF6B6B' }
-      },
-      {
-        name: '交互行为数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 9,
-        data: [null, 1600, null, null, null, null, null, null, null, null],
-        itemStyle: { color: '#4ECDC4' }
-      },
-      {
-        name: '几何形变数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 8,
-        data: [null, null, 2200, null, null, null, null, null, null, null],
-        itemStyle: { color: '#FFD93D' }
-      },
-      {
-        name: '关节状态数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 7,
-        data: [null, null, null, 1800, null, null, null, null, null, null],
-        itemStyle: { color: '#6C5CE7' }
-      },
-      {
-        name: '导航定位数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 6,
-        data: [null, null, null, null, 1500, null, null, null, null, null],
-        itemStyle: { color: '#95A5A6' }
-      },
-      {
-        name: '多模态感知数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 5,
-        data: [null, null, null, null, null, 1200, null, null, null, null],
-        itemStyle: { color: '#2ECC71' }
-      },
-      {
-        name: '视觉感知数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 4,
-        data: [null, null, null, null, null, null, 1900, null, null, null],
-        itemStyle: { color: '#E74C3C' }
-      },
-      {
-        name: '语音交互数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 3,
-        data: [null, null, null, null, null, null, null, 1700, null, null],
-        itemStyle: { color: '#3498DB' }
-      },
-      {
-        name: '力反馈数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 2,
-        data: [null, null, null, null, null, null, null, null, 1400, null],
-        itemStyle: { color: '#9B59B6' }
-      },
-      {
-        name: '环境感知数据',
-        type: 'bar',
-        barGap: '-100%',
-        barWidth: 20,
-        z: 1,
-        data: [null, null, null, null, null, null, null, null, null, 2100],
-        itemStyle: { color: '#F1C40F' }
+    series: dataTypeStats.value.map((item, index) => ({
+      name: item.type_name,
+      type: 'bar',
+      barGap: '-100%',
+      barWidth: 20,
+      z: 10 - index,
+      data: Array(dataTypeStats.value.length).fill(null).map((_, i) => 
+        i === index ? item.count : null
+      ),
+      itemStyle: {
+        color: [
+          '#FF6B6B',
+          '#4ECDC4',
+          '#FFD93D',
+          '#6C5CE7',
+          '#95A5A6',
+          '#2ECC71',
+          '#E74C3C',
+          '#3498DB',
+          '#9B59B6',
+          '#F1C40F'
+        ][index]
       }
-    ]
+    }))
   })
 
   // 初始化入场人数统计图表
@@ -688,22 +742,336 @@ const initCharts = () => {
 
   // 响应式调整
   window.addEventListener('resize', () => {
-    chart1.resize({ animation: { duration: 300 } })
     chart2.resize({ animation: { duration: 300 } })
-    myBarChart.resize({ animation: { duration: 300 } })
     chart.resize({ animation: { duration: 300 } })
   })
 }
 
+// 更新柱状图
+const updateBarChart = () => {
+  if (!barChart.value) return
+  
+  const myBarChart = echarts.init(barChart.value, null, {
+    devicePixelRatio: window.devicePixelRatio * 2
+  })
+  
+  const option = {
+    grid: {
+      left: '6%',
+      right: '5%',
+      bottom: '8%',
+      top: '2%',
+      containLabel: true
+    },
+    tooltip: { 
+      trigger: 'axis',
+      axisPointer: { 
+        type: 'shadow' 
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: trainingFieldsData.value.map(item => item.field_name),
+      axisLabel: {
+        color: '#FFFFFF',
+        interval: 0,
+        fontSize: 6,
+        margin: 12,
+        fontWeight: 'bold'
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.4)'
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '受训机器人数量（台）',
+      nameLocation: 'middle',
+      nameGap: 30,
+      nameRotate: 90,
+      nameTextStyle: {
+        color: '#FFFFFF',
+        fontSize: 9,
+        fontWeight: 'bold',
+        padding: [0, 0, 0, -15]
+      },
+      max: 300,
+      interval: 50,
+      axisLabel: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold'
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.4)'
+        }
+      },
+      axisLine: {
+        show: true,
+        lineStyle: {
+          color: 'rgba(255,255,255,0.4)'
+        }
+      }
+    },
+    series: [{
+      name: '机器人数量',
+      type: 'bar',
+      barWidth: '35%',
+      data: trainingFieldsData.value.map((item, index) => ({
+        value: item.robot_count + 250 - (index * 20),
+        itemStyle: {
+          color: `rgba(${73 + index * 5}, ${143 + index * 5}, ${225 + index * 5}, 1)`
+        }
+      })),
+      label: {
+        show: true,
+        position: 'top',
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        formatter: '{c}台'
+      },
+      itemStyle: {
+        borderRadius: [4, 4, 0, 0]
+      }
+    }]
+  }
+
+  myBarChart.setOption(option)
+
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    myBarChart.resize({ animation: { duration: 300 } })
+  })
+}
+
+// 更新数据类型柱状图
+const updateDataTypeChart = () => {
+  if (!lineChart1.value) return
+  
+  const chart = echarts.init(lineChart1.value, null, {
+    devicePixelRatio: window.devicePixelRatio * 2
+  })
+  
+  const option = {
+    grid: {
+      top: '7%',
+      left: '3%',
+      right: '20%',
+      bottom: '2%',
+      containLabel: true,
+      height: '80%'
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c}'
+    },
+    legend: {
+      orient: 'vertical',
+      right: '7%',
+      top: 'center',
+      itemWidth: 6,
+      itemHeight: 6,
+      itemGap: 12,
+      textStyle: {
+        color: '#fff',
+        fontSize: 6,
+        fontWeight: 'bold'
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: dataTypeStats.value.map(item => item.type_name),
+      axisLabel: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.3)'
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 2500,
+      interval: 500,
+      axisLabel: {
+        color: '#fff',
+        fontSize: 10
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(255,255,255,0.1)'
+        }
+      }
+    },
+    series: dataTypeStats.value.map((item, index) => ({
+      name: item.type_name,
+      type: 'bar',
+      barGap: '-100%',
+      barWidth: 20,
+      z: 10 - index,
+      data: Array(dataTypeStats.value.length).fill(null).map((_, i) => 
+        i === index ? item.count : null
+      ),
+      itemStyle: {
+        color: [
+          '#FF6B6B',
+          '#4ECDC4',
+          '#FFD93D',
+          '#6C5CE7',
+          '#95A5A6',
+          '#2ECC71',
+          '#E74C3C',
+          '#3498DB',
+          '#9B59B6',
+          '#F1C40F'
+        ][index]
+      }
+    }))
+  }
+
+  chart.setOption(option)
+  
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    chart.resize({ animation: { duration: 300 } })
+  })
+}
+
+// 获取入场人数统计数据
+const fetchVisitorStats = async () => {
+  try {
+    const response = await api.get('/visitor-records/stats')
+    // 更新周累计和月累计
+    weeklyCount.value = response.week_total
+    monthlyCount.value = response.month_total
+    // 更新每日统计数据
+    visitorStats.value = response.daily_stats.map(item => ({
+      date: item.date.split('-').slice(1).join('/'), // 转换为 MM/DD 格式
+      value: item.count
+    }))
+    // 更新图表
+    updateVisitorChart()
+  } catch (error) {
+    console.error('获取入场人数统计数据失败:', error)
+  }
+}
+
+// 更新入场人数统计图表
+const updateVisitorChart = () => {
+  if (!lineChart3.value) return
+  
+  const lineChart3Instance = echarts.init(lineChart3.value, null, { 
+    devicePixelRatio: window.devicePixelRatio * 2 
+  })
+  
+  const optionLine3 = {
+    grid: { 
+      left: '6%',
+      right: '5%',
+      bottom: '8%',
+      top: '8%',
+      containLabel: true
+    },
+    xAxis: { 
+      type: 'category', 
+      boundaryGap: true,
+      data: visitorStats.value.map(i => i.date), 
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } }, 
+      axisLabel: { 
+        color: '#fff', 
+        fontSize: 12,
+        margin: 12,
+        interval: 1
+      }, 
+      splitLine: { 
+        show: true, 
+        lineStyle: { color: 'rgba(255,255,255,0.1)' },
+        interval: 0
+      } 
+    },
+    yAxis: { 
+      type: 'value', 
+      min: 0, 
+      max: Math.max(...visitorStats.value.map(i => i.value)) * 1.2, // 动态设置最大值
+      interval: Math.ceil(Math.max(...visitorStats.value.map(i => i.value)) * 1.2 / 4), // 动态设置间隔
+      axisLabel: { 
+        color: '#fff', 
+        fontSize: 12,
+        margin: 8
+      }, 
+      splitLine: { 
+        show: true, 
+        lineStyle: { 
+          color: 'rgba(255,255,255,0.1)',
+          type: 'dashed'
+        } 
+      } 
+    },
+    series: [{
+      data: visitorStats.value.map(i => i.value), 
+      type: 'line', 
+      smooth: true, 
+      symbol: 'circle', 
+      symbolSize: 6,
+      itemStyle: { color: '#00FFFF' }, 
+      lineStyle: { color: '#00FFFF', width: 2 }, 
+      areaStyle: { 
+        color: new echarts.graphic.LinearGradient(0,0,0,1, [
+          { offset:0, color:'rgba(0,255,255,0.3)' },
+          { offset:1, color:'rgba(0,255,255,0)' }
+        ]) 
+      },
+      markPoint: { 
+        symbol: 'circle', 
+        symbolSize: 8, 
+        data: [
+          { type:'max', name:'最大值' }, 
+          { type:'min', name:'最小值' }
+        ], 
+        itemStyle:{ color:'#00FFFF' }, 
+        label:{ color:'#fff' }
+      }
+    }]
+  }
+  
+  lineChart3Instance.setOption(optionLine3)
+  window.addEventListener('resize', () => { lineChart3Instance.resize() })
+}
+
+const currentMonth = ref(new Date().getMonth() + 1)
+
 onMounted(() => {
+  // 获取机器人类型分析数据
+  fetchRobotTypeAnalysis()
+  // 获取场景分布数据
+  fetchTrainingFieldsData()
+  // 获取技能分布数据
+  fetchRobotSkillStats()
+  // 获取机器人状态数据
+  fetchRobotStatusStats()
+  // 获取数据类型统计数据
+  fetchDataTypeStats()
+  // 获取数据记录列表
+  fetchDataRecords()
+  // 获取企业数据
+  fetchCompanies()
+  // 获取荣誉数据
+  fetchHonors()
+  // 获取入场人数统计数据
+  fetchVisitorStats()
+  
   // 初始化图表
   initCharts()
   
-  // 修改企业名称滚动逻辑
-  setInterval(() => {
-    companyIndex.value = (companyIndex.value + 1) % companies.length
-  }, 3000)
-
   // 自动轮播荣誉
   setInterval(() => {
     nextHonor()
@@ -1512,13 +1880,13 @@ onMounted(() => {
 }
 
 .pie-charts .legend-color.offline {
-  background-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  background-color: #FF9500;
+  box-shadow: 0 0 5px rgba(255, 149, 0, 0.5);
 }
 
 .pie-charts .legend-color.error {
-  background-color: #FF6B6B;
-  box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
+  background-color: #FF3B30;
+  box-shadow: 0 0 5px rgba(255, 59, 48, 0.5);
 }
 
 .pie-charts .legend-value {
