@@ -537,6 +537,8 @@ const handleCreate = async () => {
     
     ElMessage.success('创建成功')
     dialogVisible.value = false
+    // 清空 videoList，避免重复添加
+    videoList.value = []
     fetchVideoList()
   } catch (error) {
     console.error('创建失败:', error)

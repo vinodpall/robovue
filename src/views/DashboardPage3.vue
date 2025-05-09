@@ -20,6 +20,7 @@
             :controls="frame.showControls"
             :autoplay="frame.autoplay"
             :muted="frame.muted"
+            loop
             @play="onVideoPlay(index)"
             @pause="onVideoPause(index)"
             @error="onVideoError(index)"
@@ -150,12 +151,17 @@ const fetchVideoUrls = async () => {
     const response = await api.get('/videos')
     console.log('获取到的视频数据:', response.items)
     
+    // 清空 videoFrames，避免重复添加
+    videoFrames.value = []
+    
     videoFrames.value = response.items.map(video => {
       console.log('处理视频:', video)
+      // 拼接 LOCAL 类型视频的 url
+      const videoUrl = video.type === 'LOCAL' ? `http://localhost:8000${video.url}` : video.url
       return {
         title: video.name,
         subtitle: video.description,
-        url: video.url,
+        url: videoUrl,
         isRtsp: video.type === 'RTSP',
         isPlaying: false,
         showControls: true,
