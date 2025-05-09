@@ -121,12 +121,34 @@
             <el-option label="LOCAL" value="LOCAL" />
           </el-select>
         </el-form-item>
-        <el-form-item label="视频地址" required>
+        <el-form-item label="视频地址" required v-if="videoForm.type !== 'LOCAL'">
           <el-input 
             v-model="videoForm.url" 
             placeholder="请输入视频地址"
             style="width: 400px"
           />
+        </el-form-item>
+        <el-form-item label="上传视频" required v-if="videoForm.type === 'LOCAL'">
+          <el-upload
+            class="video-uploader"
+            :action="`${api.defaults.baseURL}/videos/upload`"
+            :show-file-list="false"
+            :before-upload="beforeUpload"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :data="{
+              name: videoForm.name,
+              type: videoForm.type
+            }"
+            accept="video/*"
+          >
+            <el-button type="primary">选择视频文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持mp4、avi等视频格式，文件大小不超过100MB
+              </div>
+            </template>
+          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -144,12 +166,27 @@
       width="800px"
     >
       <div class="video-preview">
+        <div v-if="videoLoading" class="video-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>视频加载中...</span>
+        </div>
         <video
           v-if="currentVideo"
-          :src="currentVideo.url"
+          ref="previewVideo"
+          :src="getVideoUrl(currentVideo)"
           controls
           style="width: 100%"
+          @error="handleVideoError"
+          @loadeddata="handleVideoLoaded"
+          @loadstart="handleVideoLoadStart"
+          @stalled="handleVideoStalled"
+          @waiting="handleVideoWaiting"
+          @canplay="handleVideoCanPlay"
         ></video>
+        <div v-if="videoError" class="video-error">
+          <el-icon><Warning /></el-icon>
+          <span>{{ videoError }}</span>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -158,7 +195,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Loading, Warning } from '@element-plus/icons-vue'
 import api from '../../api'
 
 const loading = ref(false)
@@ -189,6 +226,10 @@ const videoForm = ref({
   type: '',
   url: ''
 })
+
+const videoLoading = ref(false)
+const videoError = ref('')
+const previewVideo = ref(null)
 
 // 计算表格高度
 const calculateTableHeight = () => {
@@ -279,10 +320,98 @@ const handleDelete = async (row) => {
   }
 }
 
-const handlePreview = (row) => {
+const handlePreview = async (row) => {
+  console.log('预览视频:', row)
   currentVideo.value = row
   previewVisible.value = true
+  videoLoading.value = true
+  videoError.value = ''
+  
+  // 在下一个tick后尝试播放视频
+  nextTick(async () => {
+    if (previewVideo.value) {
+      console.log('开始加载视频元素')
+      const videoUrl = getVideoUrl(row)
+      console.log('完整视频URL:', videoUrl)
+      
+      // 先测试API是否可访问
+      try {
+        const response = await fetch(videoUrl)
+        console.log('视频流API响应状态:', response.status)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        console.log('视频流API响应头:', Object.fromEntries(response.headers.entries()))
+      } catch (error) {
+        console.error('视频流API测试失败:', error)
+        videoError.value = '无法访问视频流，请检查服务器状态'
+        videoLoading.value = false
+        return
+      }
+      
+      // 设置视频源并加载
+      previewVideo.value.src = videoUrl
+      previewVideo.value.load()
+      
+      // 尝试自动播放
+      try {
+        await previewVideo.value.play()
+        console.log('视频开始播放')
+      } catch (error) {
+        console.error('自动播放失败:', error)
+        videoError.value = '视频播放失败，请手动点击播放按钮'
+      }
+    }
+  })
 }
+
+const handleVideoLoadStart = () => {
+  console.log('开始加载视频')
+  videoLoading.value = true
+}
+
+const handleVideoStalled = () => {
+  console.log('视频加载停滞')
+  videoError.value = '视频加载停滞，请检查网络连接'
+}
+
+const handleVideoWaiting = () => {
+  console.log('视频等待中')
+}
+
+const handleVideoCanPlay = () => {
+  console.log('视频可以播放')
+  videoLoading.value = false
+  videoError.value = ''
+}
+
+const handleVideoError = (error) => {
+  console.error('视频加载失败:', error)
+  console.log('错误详情:', error.target.error)
+  console.log('当前视频信息:', currentVideo.value)
+  console.log('视频URL:', getVideoUrl(currentVideo.value))
+  videoLoading.value = false
+  videoError.value = '视频加载失败，请检查视频地址是否正确'
+}
+
+const handleVideoLoaded = () => {
+  console.log('视频数据已加载')
+  videoLoading.value = false
+  videoError.value = ''
+}
+
+// 监听对话框关闭
+watch(previewVisible, (newVal) => {
+  if (!newVal) {
+    // 关闭对话框时重置状态
+    videoLoading.value = false
+    videoError.value = ''
+    if (previewVideo.value) {
+      previewVideo.value.pause()
+      previewVideo.value.src = ''
+    }
+  }
+})
 
 const handleUploadSuccess = (response) => {
   if (response && response.url) {
@@ -293,7 +422,17 @@ const handleUploadSuccess = (response) => {
   }
 }
 
+const handleUploadError = (error) => {
+  console.error('上传失败:', error)
+  ElMessage.error('视频上传失败')
+}
+
 const beforeUpload = (file) => {
+  if (!videoForm.value.name) {
+    ElMessage.warning('请先填写视频名称')
+    return false
+  }
+  
   const isVideo = file.type.startsWith('video/')
   if (!isVideo) {
     ElMessage.error('只能上传视频文件！')
@@ -307,7 +446,22 @@ const beforeUpload = (file) => {
   return true
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
+  if (!videoForm.value.name || !videoForm.value.type) {
+    ElMessage.warning('请填写必填项')
+    return
+  }
+
+  if (videoForm.value.type !== 'LOCAL' && !videoForm.value.url) {
+    ElMessage.warning('请输入视频地址')
+    return
+  }
+
+  if (videoForm.value.type === 'LOCAL' && !videoForm.value.url) {
+    ElMessage.warning('请上传视频文件')
+    return
+  }
+
   if (dialogType.value === 'add') {
     handleCreate()
   } else {
@@ -326,19 +480,16 @@ const fetchVideoList = async () => {
       video_type: filterForm.value.type || undefined
     }
     
-    console.log('筛选条件:', filterForm.value)
-    console.log('请求参数:', params)
-    
     const response = await api.get('/videos', { params })
-    console.log('响应数据:', response)
+    console.log('视频列表响应:', response)
     
     videoList.value = response.items.map(item => ({
       ...item,
-      id: item.id,
+      id: item.id,  // 使用API返回的id
       name: item.name,
       description: item.description || '',
       url: item.url || '',
-      type: item.type,  // 直接使用后端返回的类型
+      type: item.type,
       is_carousel: item.is_carousel || false,
       create_time: item.create_time || item.createTime,
       carousel_add_time: item.carousel_add_time || null
@@ -346,7 +497,6 @@ const fetchVideoList = async () => {
     total.value = response.total
   } catch (error) {
     console.error('获取视频列表失败:', error)
-    console.error('错误详情:', error.response)
     ElMessage.error('获取视频列表失败')
   } finally {
     loading.value = false
@@ -361,13 +511,30 @@ const indexMethod = (index) => {
 // 创建视频
 const handleCreate = async () => {
   try {
-    const submitData = {
-      name: videoForm.value.name,
-      description: videoForm.value.description,
-      type: videoForm.value.type,
-      url: videoForm.value.url
+    if (videoForm.value.type === 'LOCAL') {
+      // 对于本地视频，使用 FormData
+      const formData = new FormData()
+      formData.append('name', videoForm.value.name)
+      formData.append('type', videoForm.value.type)
+      formData.append('description', videoForm.value.description || '')
+      formData.append('url', videoForm.value.url)
+      
+      const response = await api.post('/videos', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+    } else {
+      // 对于其他类型，使用 JSON
+      const submitData = {
+        name: videoForm.value.name,
+        description: videoForm.value.description,
+        type: videoForm.value.type,
+        url: videoForm.value.url
+      }
+      const response = await api.post('/videos', submitData)
     }
-    const response = await api.post('/videos', submitData)
+    
     ElMessage.success('创建成功')
     dialogVisible.value = false
     fetchVideoList()
@@ -465,6 +632,52 @@ const formatTimestamp = (timestamp) => {
   
   // 如果都处理不了，返回原始值
   return timestamp
+}
+
+// 添加样式
+const videoPreviewStyle = {
+  position: 'relative',
+  width: '100%',
+  height: '450px',
+  backgroundColor: '#000',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center'
+}
+
+const videoLoadingStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  color: '#fff',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '10px'
+}
+
+const videoErrorStyle = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  color: '#f56c6c',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
+}
+
+const getVideoUrl = (video) => {
+  if (!video) return ''
+  
+  if (video.type === 'LOCAL') {
+    // 对于本地视频，使用完整的URL路径
+    const url = `${api.defaults.baseURL}${video.url}`
+    console.log('本地视频URL:', url)
+    return url
+  }
+  return video.url
 }
 
 onMounted(() => {

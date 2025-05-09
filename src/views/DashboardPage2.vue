@@ -62,85 +62,50 @@ import robotPerson from '../assets/robo-person.png'
 import robotDog from '../assets/robo-dog.png'
 import robotCar from '../assets/robo-car.png'
 import earthBg from '../assets/earth_bg.svg'
+import api from '../api'
 
 const currentIndex = ref(0)
 const autoPlayInterval = ref(null)
 
-const robots = [
-  {
-    id: 1,
-    name: '宇树 G1',
-    subtitle: '人形机器人',
-    image: robotPerson,
-    specs: [
-      '折叠尺寸: 690 × 450 × 300mm',
-      '站立尺寸(最高度): 1270 × 450 × 200mm',
-      '整机带电池重量: 59kg'
-    ],
-    awards: [
-      '可持续发展先锋奖',
-      '仿生运动突破奖',
-      '机器人行业卓越奖'
-    ],
-    reason: '宇树G1的技术突破标志着国产人形机器人在动态运动与控制领域已达到国际领先水平。'
-  },
-  {
-    id: 2,
-    name: '绝影 X30 Pro',
-    subtitle: '四足机器人',
-    image: robotDog,
-    specs: [
-      '趴地尺寸: 1130mm × 470mm × 195mm',
-      '站立尺寸: 1000mm × 470mm × 585mm',
-      '整机重量: 59kg'
-    ],
-    awards: [
-      '2024年度创新科技奖',
-      '2023国际机器人技术大赛金奖',
-      '2022最佳产品奖',
-      '工业设计奖',
-      '杰出创新设计奖',
-      '机器人行业卓越奖'
-    ],
-    reason: '先进最新的人工智能技术，机器狗能够进行自主导航与环境感知，适应各种复杂的操作环境，集成多种功能，包括空中取物运输、自动任务执行等，机器狗大大提升了工作效率。'
-  },
-  {
-    id: 3,
-    name: 'DXR-C3950',
-    subtitle: '光伏运维',
-    image: robotCar,
-    specs: [
-      '外形尺寸: < 1400 × 900 × 1640mm',
-      '整备重量: 400kg'
-    ],
-    awards: [
-      '最具商业价值奖',
-      '光伏运维先锋奖',
-      '机器人行业卓越奖'
-    ],
-    reason: '除雪机器人以创新、精准、环保为核心优势，适应恶劣环境下的光伏板检修与可持续发展需求。'
+const robots = ref([])
+
+// 获取机器人数据
+const fetchRobots = async () => {
+  try {
+    const response = await api.get('/robots/carousel')
+    robots.value = response.map(robot => ({
+      id: robot.id,
+      name: robot.serial_number,
+      subtitle: robot.industry_type,
+      image: import.meta.env.VITE_API_BASE_URL + robot.image_url,
+      specs: robot.dimensions.split(';').map(dim => dim.trim()),
+      awards: robot.awards.split(';'),
+      reason: robot.recommendation_reason
+    }))
+  } catch (error) {
+    console.error('获取机器人数据失败:', error)
   }
-]
+}
 
 const displayRobots = computed(() => {
   const arr = []
-  const total = robots.length
+  const total = robots.value.length
   
   // 左侧卡片
   arr.push({
-    ...robots[(currentIndex.value - 1 + total) % total],
+    ...robots.value[(currentIndex.value - 1 + total) % total],
     position: 'left'
   })
   
   // 中间卡片
   arr.push({
-    ...robots[currentIndex.value],
+    ...robots.value[currentIndex.value],
     position: 'center'
   })
   
   // 右侧卡片
   arr.push({
-    ...robots[(currentIndex.value + 1) % total],
+    ...robots.value[(currentIndex.value + 1) % total],
     position: 'right'
   })
   
@@ -159,7 +124,7 @@ const goToSlide = (index) => {
 
 const startAutoPlay = () => {
   autoPlayInterval.value = setInterval(() => {
-    currentIndex.value = (currentIndex.value + 1) % robots.length
+    currentIndex.value = (currentIndex.value + 1) % robots.value.length
   }, 5000)
 }
 
@@ -170,6 +135,7 @@ const stopAutoPlay = () => {
 }
 
 onMounted(() => {
+  fetchRobots()
   startAutoPlay()
 })
 
