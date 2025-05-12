@@ -148,7 +148,7 @@ const checkStreamStatus = (index) => {
 // 获取视频地址
 const fetchVideoUrls = async () => {
   try {
-    const response = await api.get('/videos')
+    const response = await api.get('/videos/carousel')
     console.log('获取到的视频数据:', response.items)
     
     // 清空 videoFrames，避免重复添加
@@ -156,8 +156,13 @@ const fetchVideoUrls = async () => {
     
     videoFrames.value = response.items.map(video => {
       console.log('处理视频:', video)
-      // 拼接 LOCAL 类型视频的 url
-      const videoUrl = video.type === 'LOCAL' ? `http://localhost:8000${video.url}` : video.url
+      // 参考图片静态资源拼接方式
+      let videoUrl = video.url
+      if (video.type === 'LOCAL') {
+        if (videoUrl && !videoUrl.startsWith('http')) {
+          videoUrl = `${import.meta.env.VITE_API_BASE_URL}${videoUrl}`
+        }
+      }
       return {
         title: video.name,
         subtitle: video.description,

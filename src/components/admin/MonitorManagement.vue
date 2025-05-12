@@ -224,7 +224,8 @@ const videoForm = ref({
   name: '',
   description: '',
   type: '',
-  url: ''
+  url: '',
+  file: null
 })
 
 const videoLoading = ref(false)
@@ -280,7 +281,8 @@ const showAddDialog = () => {
     name: '',
     description: '',
     type: '',
-    url: ''
+    url: '',
+    file: null
   }
   dialogVisible.value = true
 }
@@ -443,6 +445,9 @@ const beforeUpload = (file) => {
     ElMessage.error('视频大小不能超过 100MB！')
     return false
   }
+  
+  // 保存文件对象
+  videoForm.value.file = file
   return true
 }
 
@@ -512,37 +517,41 @@ const indexMethod = (index) => {
 const handleCreate = async () => {
   try {
     if (videoForm.value.type === 'LOCAL') {
-      // 对于本地视频，使用 FormData
+      // 对于本地视频，先上传文件
       const formData = new FormData()
-      formData.append('name', videoForm.value.name)
-      formData.append('type', videoForm.value.type)
-      formData.append('description', videoForm.value.description || '')
-      formData.append('url', videoForm.value.url)
+      formData.append('file', videoForm.value.file)
       
-      const response = await api.post('/videos', formData, {
+      const uploadResponse = await api.post('/videos/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
+      
+      // 上传成功后，创建视频记录
+      const submitData = {
+        name: videoForm.value.name,
+        description: videoForm.value.description,
+        type: videoForm.value.type,
+        url: uploadResponse.url
+      }
+      
+      await api.post('/videos', submitData)
     } else {
-      // 对于其他类型，使用 JSON
+      // 对于其他类型，直接创建视频记录
       const submitData = {
         name: videoForm.value.name,
         description: videoForm.value.description,
         type: videoForm.value.type,
         url: videoForm.value.url
       }
-      const response = await api.post('/videos', submitData)
+      await api.post('/videos', submitData)
     }
     
     ElMessage.success('创建成功')
     dialogVisible.value = false
-    // 清空 videoList，避免重复添加
-    videoList.value = []
     fetchVideoList()
   } catch (error) {
     console.error('创建失败:', error)
-    console.error('错误详情:', error.response)
     ElMessage.error('创建失败')
   }
 }
