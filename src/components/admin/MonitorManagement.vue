@@ -440,9 +440,10 @@ const beforeUpload = (file) => {
     ElMessage.error('只能上传视频文件！')
     return false
   }
-  const isLt100M = file.size / 1024 / 1024 < 100
-  if (!isLt100M) {
-    ElMessage.error('视频大小不能超过 100MB！')
+  
+  const maxSize = 100 * 1024 * 1024 // 100MB
+  if (file.size > maxSize) {
+    ElMessage.error(`视频大小不能超过 100MB！当前文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`)
     return false
   }
   
@@ -521,21 +522,45 @@ const handleCreate = async () => {
       const formData = new FormData()
       formData.append('file', videoForm.value.file)
       
-      const uploadResponse = await api.post('/videos/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      // 显示上传中的提示
+      const loadingInstance = ElMessage({
+        message: '视频上传中，请稍候...',
+        duration: 0,
+        type: 'info'
       })
       
-      // 上传成功后，创建视频记录
-      const submitData = {
-        name: videoForm.value.name,
-        description: videoForm.value.description,
-        type: videoForm.value.type,
-        url: uploadResponse.url
+      try {
+        const uploadResponse = await api.post('/videos/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          timeout: 300000, // 设置5分钟超时
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            loadingInstance.message = `视频上传中 ${percentCompleted}%`
+          }
+        })
+        
+        // 上传成功后，创建视频记录
+        const submitData = {
+          name: videoForm.value.name,
+          description: videoForm.value.description,
+          type: videoForm.value.type,
+          url: uploadResponse.url
+        }
+        
+        await api.post('/videos', submitData)
+        
+        // 关闭上传提示
+        loadingInstance.close()
+        ElMessage.success('创建成功')
+        dialogVisible.value = false
+        fetchVideoList()
+      } catch (error) {
+        // 关闭上传提示
+        loadingInstance.close()
+        throw error
       }
-      
-      await api.post('/videos', submitData)
     } else {
       // 对于其他类型，直接创建视频记录
       const submitData = {
@@ -545,14 +570,17 @@ const handleCreate = async () => {
         url: videoForm.value.url
       }
       await api.post('/videos', submitData)
+      ElMessage.success('创建成功')
+      dialogVisible.value = false
+      fetchVideoList()
     }
-    
-    ElMessage.success('创建成功')
-    dialogVisible.value = false
-    fetchVideoList()
   } catch (error) {
     console.error('创建失败:', error)
-    ElMessage.error('创建失败')
+    if (error.code === 'ECONNABORTED') {
+      ElMessage.error('上传超时，请检查网络连接或文件大小')
+    } else {
+      ElMessage.error('创建失败')
+    }
   }
 }
 
