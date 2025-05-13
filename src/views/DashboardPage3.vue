@@ -1,7 +1,7 @@
 <template>
   <div class="page-content">
     <div class="video-grid">
-      <div v-for="(frame, index) in videoFrames" 
+      <div v-for="(frame, index) in currentPageFrames" 
            :key="index" 
            class="video-frame"
            :class="{ 'active': frame.isPlaying }">
@@ -40,11 +40,21 @@
         </div>
       </div>
     </div>
+    
+    <!-- 添加翻页按钮 -->
+    <div v-if="totalPages > 1" class="page-controls">
+      <div class="page-arrow" @click="prevPage" :class="{ 'disabled': currentPage === 0 }">
+        <img src="../assets/arrow-left.svg" alt="上一页">
+      </div>
+      <div class="page-arrow" @click="nextPage" :class="{ 'disabled': currentPage === totalPages - 1 }">
+        <img src="../assets/arrow-right.svg" alt="下一页">
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import frame2Bg from '../assets/frame_2.png'
 import api from '../api'
 
@@ -67,44 +77,47 @@ const lastFrameTime = ref({})     // 记录每个视频的最后一帧时间
 const frameRate = ref({})         // 记录每个视频的帧率
 const frameInterval = 1000        // 帧率计算间隔（毫秒）
 
-const videoFrames = ref([
-  {
-    title: '除草机器人',
-    url: '',
-    isRtsp: false,
-    isPlaying: false,
-    showControls: true,
-    autoplay: true,
-    muted: true
-  },
-  {
-    title: '管道机器人',
-    url: '',
-    isRtsp: false,
-    isPlaying: false,
-    showControls: true,
-    autoplay: true,
-    muted: true
-  },
-  {
-    title: '机器狗',
-    url: '',
-    isRtsp: false,
-    isPlaying: false,
-    showControls: true,
-    autoplay: true,
-    muted: true
-  },
-  {
-    title: '运输机器人',
-    url: '',
-    isRtsp: false,
-    isPlaying: false,
-    showControls: true,
-    autoplay: true,
-    muted: true
+const videoFrames = ref([])
+const currentPage = ref(0)
+const framesPerPage = 4
+const videoCarouselTimer = ref(null)
+const videoCarouselConfig = ref({
+  enabled: false,
+  duration: 13
+})
+
+// 计算当前页的视频帧
+const currentPageFrames = computed(() => {
+  const start = currentPage.value * framesPerPage
+  const end = start + framesPerPage
+  return videoFrames.value.slice(start, end)
+})
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(videoFrames.value.length / framesPerPage)
+})
+
+// 翻页方法
+const prevPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--
+    // 如果视频轮播开启，重置定时器
+    if (videoCarouselConfig.value.enabled) {
+      startVideoCarousel()
+    }
   }
-])
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value++
+    // 如果视频轮播开启，重置定时器
+    if (videoCarouselConfig.value.enabled) {
+      startVideoCarousel()
+    }
+  }
+}
 
 // 初始化视频状态
 const initVideoStatus = (index) => {
@@ -145,18 +158,56 @@ const checkStreamStatus = (index) => {
   }
 }
 
-// 获取视频地址
+// 获取轮播配置
+const fetchCarouselConfig = async () => {
+  try {
+    const response = await api.get('/web-configs')
+    if (response.items && response.items.length > 0) {
+      const config = response.items[0]
+      videoCarouselConfig.value = {
+        enabled: config.video_carousel || false,
+        duration: config.video_carousel_duration || 13
+      }
+      console.log('视频轮播配置:', videoCarouselConfig.value)
+      
+      // 如果视频数量超过4个且轮播开启，则开始轮播
+      if (videoFrames.value.length > framesPerPage && videoCarouselConfig.value.enabled) {
+        startVideoCarousel()
+      }
+    }
+  } catch (error) {
+    console.error('获取轮播配置失败:', error)
+  }
+}
+
+// 开始视频轮播
+const startVideoCarousel = () => {
+  stopVideoCarousel() // 先清除之前的定时器
+  videoCarouselTimer.value = setInterval(() => {
+    if (currentPage.value < totalPages.value - 1) {
+      currentPage.value++
+    } else {
+      currentPage.value = 0
+    }
+  }, videoCarouselConfig.value.duration * 1000)
+}
+
+// 停止视频轮播
+const stopVideoCarousel = () => {
+  if (videoCarouselTimer.value) {
+    clearInterval(videoCarouselTimer.value)
+    videoCarouselTimer.value = null
+  }
+}
+
+// 修改 fetchVideoUrls 方法
 const fetchVideoUrls = async () => {
   try {
     const response = await api.get('/videos/carousel')
     console.log('获取到的视频数据:', response.items)
     
-    // 清空 videoFrames，避免重复添加
-    videoFrames.value = []
-    
     videoFrames.value = response.items.map(video => {
       console.log('处理视频:', video)
-      // 参考图片静态资源拼接方式
       let videoUrl = video.url
       if (video.type === 'LOCAL') {
         if (videoUrl && !videoUrl.startsWith('http')) {
@@ -175,9 +226,12 @@ const fetchVideoUrls = async () => {
       }
     })
 
-    // 初始化所有视频播放器
+    // 重置页码
+    currentPage.value = 0
+
+    // 初始化当前页的视频播放器
     nextTick(() => {
-      videoFrames.value.forEach((frame, index) => {
+      currentPageFrames.value.forEach((frame, index) => {
         console.log(`初始化视频 ${index}:`, frame)
         initVideoStatus(index)
         if (frame.isRtsp) {
@@ -185,6 +239,9 @@ const fetchVideoUrls = async () => {
         }
       })
     })
+
+    // 获取轮播配置
+    await fetchCarouselConfig()
   } catch (error) {
     console.error('获取视频地址失败:', error)
   }
@@ -512,6 +569,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopVideoCarousel()
   cleanup()
 })
 </script>
@@ -522,6 +580,7 @@ onUnmounted(() => {
   padding: 10px 20px 40px;
   box-sizing: border-box;
   background-color: #0A184B;
+  position: relative;
 }
 
 .video-grid {
@@ -610,5 +669,37 @@ onUnmounted(() => {
 
 .active .video-overlay {
   display: none;
+}
+
+.page-controls {
+  position: absolute;
+  top: 46%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 5px;
+  pointer-events: none;
+  /* transform: translateY(-50%); */
+  z-index: 10;
+}
+
+.page-arrow {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.page-arrow.disabled {
+  cursor: not-allowed;
+}
+
+.page-arrow img {
+  width: 24px;
+  height: 24px;
 }
 </style> 

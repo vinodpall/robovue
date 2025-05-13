@@ -337,10 +337,6 @@ const fetchDataRecords = async () => {
       type: item.data_type.name,
       value: item.count
     }))
-    // 计算总采集量
-    totalCollect.value = response.total
-    // 计算今日采集量（假设第一条是今天的）
-    todayCollect.value = response.items[0]?.count || 0
   } catch (error) {
     console.error('获取数据记录列表失败:', error)
   }

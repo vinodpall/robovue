@@ -65,9 +65,8 @@ import earthBg from '../assets/earth_bg.svg'
 import api from '../api'
 
 const currentIndex = ref(0)
-const autoPlayInterval = ref(null)
-
 const robots = ref([])
+const robotCarouselTimer = ref(null)
 
 // 获取机器人数据
 const fetchRobots = async () => {
@@ -82,33 +81,49 @@ const fetchRobots = async () => {
       awards: robot.awards.split(';'),
       reason: robot.recommendation_reason
     }))
+    // 开始自动轮播
+    startRobotCarousel()
   } catch (error) {
     console.error('获取机器人数据失败:', error)
+  }
+}
+
+// 开始机器人轮播
+const startRobotCarousel = () => {
+  stopRobotCarousel() // 先清除之前的定时器
+  robotCarouselTimer.value = setInterval(() => {
+    if (robots.value.length > 0) {
+      currentIndex.value = (currentIndex.value + 1) % robots.value.length
+    }
+  }, 5000) // 每5秒切换一次
+}
+
+// 停止机器人轮播
+const stopRobotCarousel = () => {
+  if (robotCarouselTimer.value) {
+    clearInterval(robotCarouselTimer.value)
+    robotCarouselTimer.value = null
   }
 }
 
 const displayRobots = computed(() => {
   const arr = []
   const total = robots.value.length
-  
   // 左侧卡片
   arr.push({
     ...robots.value[(currentIndex.value - 1 + total) % total],
     position: 'left'
   })
-  
   // 中间卡片
   arr.push({
     ...robots.value[currentIndex.value],
     position: 'center'
   })
-  
   // 右侧卡片
   arr.push({
     ...robots.value[(currentIndex.value + 1) % total],
     position: 'right'
   })
-  
   return arr
 })
 
@@ -122,26 +137,24 @@ const goToSlide = (index) => {
   currentIndex.value = index
 }
 
-const startAutoPlay = () => {
-  autoPlayInterval.value = setInterval(() => {
-    currentIndex.value = (currentIndex.value + 1) % robots.value.length
-  }, 5000)
-}
-
-const stopAutoPlay = () => {
-  if (autoPlayInterval.value) {
-    clearInterval(autoPlayInterval.value)
-  }
-}
-
 onMounted(() => {
   fetchRobots()
-  startAutoPlay()
 })
 
 onUnmounted(() => {
-  stopAutoPlay()
+  stopRobotCarousel()
+  // 移除事件监听
+  window.removeEventListener('carousel-status-changed', handleCarouselStatusChange)
 })
+
+// 处理轮播状态变化
+const handleCarouselStatusChange = (event) => {
+  if (event.detail.enabled) {
+    startRobotCarousel()
+  } else {
+    stopRobotCarousel()
+  }
+}
 </script>
 
 <style scoped>

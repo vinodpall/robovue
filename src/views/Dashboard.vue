@@ -39,21 +39,68 @@ import Header from '../components/Header.vue'
 import DashboardPage1 from './DashboardPage1.vue'
 import DashboardPage2 from './DashboardPage2.vue'
 import DashboardPage3 from './DashboardPage3.vue'
+import api from '../api'
 
 const pages = [DashboardPage1, DashboardPage2, DashboardPage3]
 const currentPage = ref(0)
 const dashboardRef = ref(null)
+const autoPlayTimer = ref(null)
+const pageDurations = ref([5000, 5000, 5000]) // 默认每页5秒
+
+// 获取轮播配置
+const fetchCarouselConfig = async () => {
+  try {
+    const response = await api.get('/web-configs')
+    if (response.items && response.items.length > 0) {
+      const config = response.items[0]
+      if (config.page_carousel) {
+        // 分别设置每页的停留时间（单位：毫秒）
+        pageDurations.value = [
+          (config.first_page_duration ?? 5) * 1000,
+          (config.second_page_duration ?? 5) * 1000,
+          (config.third_page_duration ?? 5) * 1000
+        ]
+        console.log('页面停留时间配置:', pageDurations.value)
+        startAutoPlay()
+      }
+    }
+  } catch (error) {
+    console.error('获取轮播配置失败:', error)
+  }
+}
+
+// 开始自动轮播
+const startAutoPlay = () => {
+  stopAutoPlay() // 先清除之前的定时器
+  const duration = pageDurations.value[currentPage.value] // 已经是毫秒单位
+  console.log(`当前页面 ${currentPage.value} 的停留时间:`, duration)
+  autoPlayTimer.value = setTimeout(() => {
+    nextPage()
+  }, duration)
+}
+
+// 停止自动轮播
+const stopAutoPlay = () => {
+  if (autoPlayTimer.value) {
+    clearTimeout(autoPlayTimer.value)
+    autoPlayTimer.value = null
+  }
+}
 
 const goToPage = (index) => {
+  if (index === currentPage.value) return
   currentPage.value = index
+  // 不再自动重启轮播
 }
 
 const nextPage = () => {
   currentPage.value = (currentPage.value + 1) % 3
+  startAutoPlay() // 重新启动定时器
 }
 
 const prevPage = () => {
   currentPage.value = (currentPage.value - 1 + 3) % 3
+  // 不再自动重启轮播
 }
 
 const handleKeydown = (e) => {
@@ -66,11 +113,27 @@ const handleKeydown = (e) => {
 
 onMounted(() => {
   dashboardRef.value?.focus()
+  fetchCarouselConfig()
+  
+  // 监听轮播状态变化
+  window.addEventListener('carousel-status-changed', handleCarouselStatusChange)
 })
 
 onUnmounted(() => {
-  // No need to clean up any resources as there's no auto-play functionality
+  stopAutoPlay()
+  // 移除事件监听
+  window.removeEventListener('carousel-status-changed', handleCarouselStatusChange)
 })
+
+// 处理轮播状态变化
+const handleCarouselStatusChange = async (event) => {
+  if (event.detail.enabled) {
+    // 重新获取配置
+    await fetchCarouselConfig()
+  } else {
+    stopAutoPlay()
+  }
+}
 </script>
 
 <style scoped>
