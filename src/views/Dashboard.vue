@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="dashboard">
     <div class="header">
       <div class="logo-container">
@@ -197,6 +198,36 @@
             <h3>入场人数统计</h3>
             <div ref="lineChart3" class="chart"></div>
           </div>
+=======
+  <div class="dashboard-container">
+    <div class="dashboard" @keydown="handleKeydown" tabindex="0" ref="dashboardRef">
+      <Header />
+      <div class="content">
+        <div class="carousel-container">
+          <div class="carousel-items">
+            <div 
+              v-for="(_, index) in 3" 
+              :key="index"
+              class="carousel-item"
+              :class="{ active: currentPage === index }"
+              :style="{ 
+                opacity: currentPage === index ? 1 : 0,
+                visibility: currentPage === index ? 'visible' : 'hidden'
+              }"
+            >
+              <component :is="pages[index]" />
+            </div>
+          </div>
+          <div class="carousel-controls">
+            <div 
+              v-for="(_, index) in 3" 
+              :key="index"
+              class="control-dot"
+              :class="{ active: currentPage === index }"
+              @click="goToPage(index)"
+            ></div>
+          </div>
+>>>>>>> dev
         </div>
       </div>
     </div>
@@ -204,6 +235,7 @@
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { ref, onMounted, computed } from 'vue'
 import * as echarts from 'echarts'
 
@@ -277,6 +309,82 @@ const honors = ref([
   {
     title: '智能机器人创新中心',
     image: awardsImg
+=======
+import { ref, onMounted, onUnmounted } from 'vue'
+import Header from '../components/Header.vue'
+import DashboardPage1 from './DashboardPage1.vue'
+import DashboardPage2 from './DashboardPage2.vue'
+import DashboardPage3 from './DashboardPage3.vue'
+import api from '../api'
+
+const pages = [DashboardPage1, DashboardPage2, DashboardPage3]
+const currentPage = ref(0)
+const dashboardRef = ref(null)
+const autoPlayTimer = ref(null)
+const pageDurations = ref([5000, 5000, 5000]) // 默认每页5秒
+
+// 获取轮播配置
+const fetchCarouselConfig = async () => {
+  try {
+    const response = await api.get('/web-configs')
+    if (response.items && response.items.length > 0) {
+      const config = response.items[0]
+      if (config.page_carousel) {
+        // 分别设置每页的停留时间（单位：毫秒）
+        pageDurations.value = [
+          (config.first_page_duration ?? 5) * 1000,
+          (config.second_page_duration ?? 5) * 1000,
+          (config.third_page_duration ?? 5) * 1000
+        ]
+        console.log('页面停留时间配置:', pageDurations.value)
+        startAutoPlay()
+      }
+    }
+  } catch (error) {
+    console.error('获取轮播配置失败:', error)
+  }
+}
+
+// 开始自动轮播
+const startAutoPlay = () => {
+  stopAutoPlay() // 先清除之前的定时器
+  const duration = pageDurations.value[currentPage.value] // 已经是毫秒单位
+  console.log(`当前页面 ${currentPage.value} 的停留时间:`, duration)
+  autoPlayTimer.value = setTimeout(() => {
+    nextPage()
+  }, duration)
+}
+
+// 停止自动轮播
+const stopAutoPlay = () => {
+  if (autoPlayTimer.value) {
+    clearTimeout(autoPlayTimer.value)
+    autoPlayTimer.value = null
+  }
+}
+
+const goToPage = (index) => {
+  if (index === currentPage.value) return
+  currentPage.value = index
+  // 不再自动重启轮播
+}
+
+const nextPage = () => {
+  currentPage.value = (currentPage.value + 1) % 3
+  startAutoPlay() // 重新启动定时器
+}
+
+const prevPage = () => {
+  currentPage.value = (currentPage.value - 1 + 3) % 3
+  // 不再自动重启轮播
+}
+
+const handleKeydown = (e) => {
+  if (e.key === 'ArrowLeft') {
+    prevPage()
+  } else if (e.key === 'ArrowRight') {
+    nextPage()
+>>>>>>> dev
   }
 ])
 
@@ -310,6 +418,7 @@ const getItemClass = (index) => {
 }
 
 onMounted(() => {
+<<<<<<< HEAD
   // 初始化时间显示
   updateTime()
   // 每分钟更新一次时间
@@ -682,22 +791,57 @@ const updateTime = () => {
     const month = (now.getMonth() + 1).toString().padStart(2, '0')
     const day = now.getDate().toString().padStart(2, '0')
     dateEl.innerHTML = `<div>${weekday}</div><div>${year}年${month}月${day}日</div>`
+=======
+  dashboardRef.value?.focus()
+  fetchCarouselConfig()
+  
+  // 监听轮播状态变化
+  window.addEventListener('carousel-status-changed', handleCarouselStatusChange)
+})
+
+onUnmounted(() => {
+  stopAutoPlay()
+  // 移除事件监听
+  window.removeEventListener('carousel-status-changed', handleCarouselStatusChange)
+})
+
+// 处理轮播状态变化
+const handleCarouselStatusChange = async (event) => {
+  if (event.detail.enabled) {
+    // 重新获取配置
+    await fetchCarouselConfig()
+  } else {
+    stopAutoPlay()
+>>>>>>> dev
   }
 }
 </script>
 
 <style scoped>
+<<<<<<< HEAD
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
+=======
+.dashboard-container {
+  width: 100%;
+  height: 100vh;
+  background-color: #000B2A;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+>>>>>>> dev
 }
 
 .dashboard {
   width: 1600px;
   height: 1200px;
+<<<<<<< HEAD
   background: #0A184B;
   position: relative;
 }
@@ -819,6 +963,13 @@ html, body {
   width: 19px;
   height: 17px;
   object-fit: contain;
+=======
+  background-color: #0A184B;
+  position: absolute;
+  left: 0;
+  top: 0;
+  outline: none;
+>>>>>>> dev
 }
 
 .content {
@@ -1303,7 +1454,32 @@ html, body {
   width: 100%;
   height: 220px;
   position: relative;
+<<<<<<< HEAD
   overflow: visible;
+=======
+}
+
+.carousel-items {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.carousel-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.8s ease;
+}
+
+.carousel-controls {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+>>>>>>> dev
   display: flex;
   align-items: center;
   justify-content: center;
