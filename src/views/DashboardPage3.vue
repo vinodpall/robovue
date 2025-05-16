@@ -2,40 +2,76 @@
   <div class="page-content">
     <div class="video-grid">
       <div v-for="(frame, index) in currentPageFrames" 
-           :key="index" 
+           :key="frame.en_name" 
            class="video-frame"
            :class="{ 'active': frame.isPlaying }">
         <div class="frame-title">
           <img src="../assets/agent.svg" class="agent-icon" alt="agent icon">
           {{ frame.title }}
         </div>
-        <div class="video-container">
+        <div class="video-container" @mouseenter="showControls[frame.en_name] = true" @mouseleave="showControls[frame.en_name] = false">
+          <!-- WebRTC视频流播放 -->
+          <video
+            v-if="frame.isRtsp"
+            :ref="el => handleVideoRef(el, frame.en_name)"
+            :id="'video-' + frame.en_name"
+            class="video-player"
+            autoplay
+            playsinline
+            muted
+            controlsList="nofullscreen"
+            @play="onVideoPlay(frame.en_name)"
+            @pause="onVideoPause(frame.en_name)"
+            @error="onVideoError(frame.en_name)"
+            @loadedmetadata="() => console.log(`视频 ${frame.en_name} 元数据已加载`)"
+            @loadeddata="() => console.log(`视频 ${frame.en_name} 数据已加载`)"
+            @canplay="() => console.log(`视频 ${frame.en_name} 可以播放`)"
+            @waiting="() => console.log(`视频 ${frame.en_name} 等待数据`)"
+            @stalled="() => console.log(`视频 ${frame.en_name} 数据停滞`)"
+          ></video>
+          
           <!-- 本地视频播放 -->
           <video
-            v-if="!frame.isRtsp"
-            :ref="el => { if (el) videoRefs[index] = el }"
-            :id="'video-' + index"
+            v-else
+            :ref="el => { if (el) videoRefs[frame.en_name] = el }"
+            :id="'video-' + frame.en_name"
             class="video-player"
             :src="frame.url"
             :controls="frame.showControls"
             :autoplay="frame.autoplay"
             :muted="frame.muted"
+            controlsList="nofullscreen"
             loop
-            @play="onVideoPlay(index)"
-            @pause="onVideoPause(index)"
-            @error="onVideoError(index)"
+            @play="onVideoPlay(frame.en_name)"
+            @pause="onVideoPause(frame.en_name)"
+            @error="onVideoError(frame.en_name)"
           ></video>
           
-          <!-- RTSP视频流播放 -->
-          <canvas
-            v-else
-            :ref="el => { if (el) canvasRefs[index] = el }"
-            :id="'canvas-' + index"
-            class="video-player"
-          ></canvas>
+          <div v-if="frame.isRtsp && !frame.isPlaying" class="video-overlay">
+            <button class="play-button" 
+                    @click="handlePlayClick(frame.en_name)" 
+                    :disabled="isConnected[frame.en_name] || isLoading[frame.en_name]">
+              {{ isLoading[frame.en_name] ? '连接中...' : '播放' }}
+            </button>
+          </div>
           
-          <div v-if="!frame.isPlaying" class="video-overlay">
-            <button class="play-button" @click="startVideo(index)">播放</button>
+          <!-- 视频控制按钮 -->
+          <div v-if="frame.isRtsp && showControls[frame.en_name]" class="video-controls">
+            <div class="control-buttons">
+              <div class="left-controls">
+                <button v-if="frame.isPlaying" class="control-button" @click="handleStopClick(frame.en_name)">
+                  <i class="fas fa-pause"></i>
+                </button>
+                <button v-else class="control-button" @click="handlePlayClick(frame.en_name)" :disabled="isConnected[frame.en_name] || isLoading[frame.en_name]">
+                  <i class="fas fa-play"></i>
+                </button>
+              </div>
+              <div class="right-controls">
+                <button class="control-button maximize" @click="handleMaximize(frame.en_name)">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -58,8 +94,8 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import frame2Bg from '../assets/frame_2.png'
 import api from '../api'
 
-const videoRefs = ref({})  // 改为对象形式
-const canvasRefs = ref({}) // 改为对象形式
+const videoRefs = ref({})
+const canvasRefs = ref({})
 const wsConnections = ref({})
 const frameBuffers = ref({})  // 视频帧缓冲区
 const bufferSize = 5  // 缓冲区大小，可根据需要调整
@@ -68,8 +104,10 @@ const renderTimers = ref({})  // 渲染定时器
 const retryCounts = ref({})  // 记录每个视频的重试次数
 const maxRetries = 3         // 最大重试次数
 const retryInterval = 3000   // 重试间隔（毫秒）
-const connectionStatus = ref({})  // 记录每个视频的连接状态
-const streamStatus = ref({})      // 记录每个视频的流状态
+const retryTimers = ref({}) // 重试定时器
+const connectionStates = ref({})
+const isConnected = ref({})
+const isLoading = ref({})
 
 // 视频帧处理相关
 const frameCounts = ref({})       // 记录每个视频的帧数
@@ -86,6 +124,9 @@ const videoCarouselConfig = ref({
   duration: 13
 })
 
+// 添加控制按钮显示状态
+const showControls = ref({})
+
 // 计算当前页的视频帧
 const currentPageFrames = computed(() => {
   const start = currentPage.value * framesPerPage
@@ -98,10 +139,14 @@ const totalPages = computed(() => {
   return Math.ceil(videoFrames.value.length / framesPerPage)
 })
 
-// 翻页方法
+// 修改翻页方法
 const prevPage = () => {
   if (currentPage.value > 0) {
     currentPage.value--
+    // 初始化新页面的视频
+    nextTick(() => {
+      initCurrentPage()
+    })
     // 如果视频轮播开启，重置定时器
     if (videoCarouselConfig.value.enabled) {
       startVideoCarousel()
@@ -112,6 +157,10 @@ const prevPage = () => {
 const nextPage = () => {
   if (currentPage.value < totalPages.value - 1) {
     currentPage.value++
+    // 初始化新页面的视频
+    nextTick(() => {
+      initCurrentPage()
+    })
     // 如果视频轮播开启，重置定时器
     if (videoCarouselConfig.value.enabled) {
       startVideoCarousel()
@@ -119,14 +168,27 @@ const nextPage = () => {
   }
 }
 
+// 修改初始化当前页面的方法
+const initCurrentPage = () => {
+  currentPageFrames.value.forEach(frame => {
+    console.log(`初始化视频 ${frame.en_name}:`, frame)
+    // 只初始化未连接的视频
+    if (!isConnected.value[frame.en_name]) {
+      initVideoStatus(frame.en_name)
+      // 如果是RTSP视频且未连接，自动开始播放
+      if (frame.isRtsp) {
+        startVideo(frame.en_name)
+      }
+    }
+  })
+}
+
 // 初始化视频状态
-const initVideoStatus = (index) => {
-  retryCounts.value[index] = 0
-  connectionStatus.value[index] = 'disconnected'
-  streamStatus.value[index] = 'stopped'
-  frameCounts.value[index] = 0
-  lastFrameTime.value[index] = Date.now()
-  frameRate.value[index] = 0
+const initVideoStatus = (en_name) => {
+  connectionStates.value[en_name] = '未连接'
+  isConnected.value[en_name] = false
+  isLoading.value[en_name] = false
+  showControls.value[en_name] = false
 }
 
 // 更新帧率
@@ -218,6 +280,7 @@ const fetchVideoUrls = async () => {
         title: video.name,
         subtitle: video.description,
         url: videoUrl,
+        en_name: video.en_name,
         isRtsp: video.type === 'RTSP',
         isPlaying: false,
         showControls: true,
@@ -231,13 +294,7 @@ const fetchVideoUrls = async () => {
 
     // 初始化当前页的视频播放器
     nextTick(() => {
-      currentPageFrames.value.forEach((frame, index) => {
-        console.log(`初始化视频 ${index}:`, frame)
-        initVideoStatus(index)
-        if (frame.isRtsp) {
-          startVideo(index)
-        }
-      })
+      initCurrentPage()
     })
 
     // 获取轮播配置
@@ -247,231 +304,202 @@ const fetchVideoUrls = async () => {
   }
 }
 
-const startVideo = (index) => {
-  const frame = videoFrames.value[index]
-  console.log(`开始播放视频 ${index}:`, frame)
+// 添加新的处理方法
+const handlePlayClick = (en_name) => {
+  console.log(`点击播放按钮 ${en_name}`)
+  startVideo(en_name)
+}
+
+const handleStopClick = (en_name) => {
+  console.log(`点击停止按钮 ${en_name}`)
+  stopVideo(en_name)
+}
+
+// 添加视频引用处理方法
+const handleVideoRef = (el, en_name) => {
+  if (el) {
+    console.log(`视频元素 ${en_name} 已挂载:`, el)
+    videoRefs.value[en_name] = el
+    
+    // 如果视频已经连接，恢复视频流
+    if (wsConnections.value[en_name] && wsConnections.value[en_name].connectionState === 'connected') {
+      const stream = wsConnections.value[en_name].getRemoteStreams()[0]
+      if (stream) {
+        console.log(`恢复视频 ${en_name} 的流`)
+        el.srcObject = stream
+      }
+    }
+  }
+}
+
+// 修改 startVideo 方法
+const startVideo = async (en_name) => {
+  const frame = videoFrames.value.find(f => f.en_name === en_name)
+  if (!frame) return
+
+  console.log(`开始播放视频 ${en_name}:`, frame)
   
   if (frame.isRtsp) {
-    // 如果已经有连接，先关闭
-    if (wsConnections.value[index]) {
-      wsConnections.value[index].close()
-      wsConnections.value[index] = null
+    if (isConnected.value[en_name] || isLoading.value[en_name]) {
+      console.log(`视频 ${en_name} 已连接或正在加载中，跳过`)
+      return
     }
-    
-    // 如果有渲染定时器，先停止
-    if (renderTimers.value[index]) {
-      clearInterval(renderTimers.value[index])
-      renderTimers.value[index] = null
+
+    isLoading.value[en_name] = true
+    connectionStates.value[en_name] = '准备连接...'
+    console.log(`开始连接 ${frame.title}...`)
+
+    try {
+      const video = videoRefs.value[en_name]
+      if (!video) {
+        throw new Error('视频元素不存在')
+      }
+
+      // 创建 RTCPeerConnection
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      })
+      console.log('RTCPeerConnection 已创建')
+
+      // 处理ICE候选
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log(`[${frame.title}] 生成ICE Candidate:`, event.candidate.candidate.substring(0, 50) + '...')
+        } else {
+          console.log(`[${frame.title}] 所有ICE Candidate已发送完毕`)
+        }
+      }
+
+      // 处理远程流
+      pc.ontrack = (event) => {
+        console.log(`[${frame.title}] 接收到远程轨道:`, {
+          kind: event.track.kind,
+          id: event.track.id,
+          readyState: event.track.readyState,
+          muted: event.track.muted,
+          enabled: event.track.enabled
+        })
+        if (video && event.streams && event.streams[0]) {
+          console.log('设置视频源:', {
+            streamId: event.streams[0].id,
+            tracks: event.streams[0].getTracks().map(t => ({
+              kind: t.kind,
+              id: t.id,
+              readyState: t.readyState
+            }))
+          })
+          video.srcObject = event.streams[0]
+          connectionStates.value[en_name] = '视频流已附加'
+          frame.isPlaying = true
+          // 连接成功后重置重试计数
+          retryCounts.value[en_name] = 0
+          if (retryTimers.value[en_name]) {
+            clearTimeout(retryTimers.value[en_name])
+            retryTimers.value[en_name] = null
+          }
+        }
+      }
+
+      // 处理连接状态变化
+      pc.onconnectionstatechange = () => {
+        if (pc) {
+          connectionStates.value[en_name] = pc.connectionState
+          console.log(`[${frame.title}] WebRTC 连接状态改变:`, {
+            connectionState: pc.connectionState,
+            iceConnectionState: pc.iceConnectionState,
+            iceGatheringState: pc.iceGatheringState,
+            signalingState: pc.signalingState
+          })
+          if (pc.connectionState === 'connected') {
+            isConnected.value[en_name] = true
+            isLoading.value[en_name] = false
+          } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+            isConnected.value[en_name] = false
+            isLoading.value[en_name] = false
+            frame.isPlaying = false
+            cleanupRTC(en_name)
+            // 触发重连
+            scheduleRetry(en_name)
+          }
+        }
+      }
+
+      // 添加视频接收器
+      pc.addTransceiver('video', { direction: 'recvonly' })
+      // 如果需要音频
+      pc.addTransceiver('audio', { direction: 'recvonly' })
+      console.log('已添加视频和音频接收器')
+
+      // 创建并设置本地offer
+      const offer = await pc.createOffer()
+      console.log('创建的Offer:', {
+        type: offer.type,
+        sdp: offer.sdp.substring(0, 100) + '...' // 只打印前100个字符
+      })
+      await pc.setLocalDescription(offer)
+      console.log(`[${frame.title}] 本地Offer已创建并设置`)
+
+      // 使用 en_name 作为 streamName
+      const streamName = frame.en_name
+      const whepUrl = `http://localhost:8889/${streamName}/whep`
+      console.log(`[${frame.title}] 发送Offer到WHEP端点: ${whepUrl}`)
+
+      // 发送offer到WHEP端点
+      const response = await fetch(whepUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/sdp',
+          'Accept': 'application/sdp',
+          'Authorization': 'Basic ' + btoa('apiadmin:apipassword123')
+        },
+        body: offer.sdp,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('WHEP请求失败:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        })
+        throw new Error(`WHEP请求失败 (${response.status} ${response.statusText}): ${errorText}`)
+      }
+
+      const answerSdp = await response.text()
+      if (!answerSdp) {
+        throw new Error('从WHEP端点获取的Answer SDP为空')
+      }
+      console.log('收到的Answer:', {
+        sdp: answerSdp.substring(0, 100) + '...' // 只打印前100个字符
+      })
+
+      await pc.setRemoteDescription(
+        new RTCSessionDescription({ type: 'answer', sdp: answerSdp })
+      )
+      console.log(`[${frame.title}] 远程Answer已设置`)
+
+      // 保存RTCPeerConnection实例
+      wsConnections.value[en_name] = pc
+
+    } catch (error) {
+      console.error(`[${frame.title}] 启动视频流失败:`, error)
+      console.error('错误详情:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
+      connectionStates.value[en_name] = `错误: ${error.message.substring(0,100)}...`
+      frame.isPlaying = false
+      isLoading.value[en_name] = false
+      cleanupRTC(en_name)
+      // 触发重连
+      scheduleRetry(en_name)
     }
-    
-    // 初始化帧缓冲区
-    frameBuffers.value[index] = []
-    
-    // 检查Canvas元素是否存在
-    console.log(`检查Canvas元素 ${index} 是否存在:`, canvasRefs.value[index] ? '存在' : '不存在')
-    
-    // 确保在建立WebSocket之前Canvas已准备好
-    nextTick(() => {
-      if (!canvasRefs.value[index]) {
-        console.error(`Canvas元素 ${index} 不存在，等待DOM更新后重试`)
-        // 如果Canvas元素不存在，等待DOM更新后重试
-        setTimeout(() => {
-          if (videoFrames.value[index]) {
-            startVideo(index)
-          }
-        }, 500)
-        return
-      }
-      
-      console.log(`Canvas元素 ${index} 尺寸:`, canvasRefs.value[index].width, 'x', canvasRefs.value[index].height)
-      
-      // 创建新的WebSocket连接
-      const encodedUrl = encodeURIComponent(frame.url)
-      console.log('WebSocket URL:', `ws://localhost:8765/${encodedUrl}`)
-      
-      const ws = new WebSocket(`ws://localhost:8765/${encodedUrl}`)
-      
-      // 开始渲染循环，从缓冲区获取帧进行渲染
-      const startRendering = () => {
-        // 如果已有渲染定时器，先清除
-        if (renderTimers.value[index]) {
-          clearInterval(renderTimers.value[index])
-        }
-        
-        // 设置渲染定时器
-        renderTimers.value[index] = setInterval(() => {
-          // 检查缓冲区是否有帧
-          if (frameBuffers.value[index] && frameBuffers.value[index].length > 0 && canvasRefs.value[index]) {
-            try {
-              // 取出最早的一帧
-              const frameData = frameBuffers.value[index].shift()
-              
-              // 渲染到canvas
-              const canvas = canvasRefs.value[index]
-              const ctx = canvas.getContext('2d')
-              
-              // 对于MJPEG格式，直接绘制图像
-              if (frameData.image) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height)
-                ctx.drawImage(frameData.image, 0, 0)
-              } 
-              // 兼容之前的ImageData格式
-              else if (frameData.imageData) {
-                ctx.putImageData(frameData.imageData, 0, 0)
-              }
-              
-              // 更新播放状态
-              videoFrames.value[index].isPlaying = true
-              
-              // 显示缓冲状态
-              if (Math.random() < 0.05) { // 偶尔记录
-                console.log(`视频 ${index} 当前缓冲: ${frameBuffers.value[index].length}/${bufferSize} 帧`)
-              }
-            } catch (error) {
-              if (Math.random() < 0.01) { // 避免频繁报错
-                console.error('渲染帧失败:', error)
-              }
-            }
-          }
-        }, renderInterval)
-      }
-      
-      ws.onopen = () => {
-        console.log('WebSocket连接已建立')
-        // 发送初始化消息
-        const initMessage = {
-          type: 'init',
-          url: frame.url
-        }
-        console.log('发送初始化消息:', initMessage)
-        ws.send(JSON.stringify(initMessage))
-        
-        // 开始渲染
-        startRendering()
-      }
-      
-      ws.onmessage = (event) => {
-        // 减少日志输出频率
-        if (Math.random() < 0.001) { // 只记录约0.1%的消息
-          console.log('收到WebSocket消息，数据类型:', typeof event.data, '大小:', event.data.size || event.data.byteLength)
-        }
-        
-        // 检查Canvas是否存在，不存在则静默忽略
-        if (!canvasRefs.value[index]) {
-          return
-        }
-        
-        try {
-          const canvas = canvasRefs.value[index]
-          const frame = event.data
-          
-          if (frame instanceof Blob) {
-            // 处理MJPEG格式（每帧是一个JPEG图像）
-            const url = URL.createObjectURL(frame)
-            const img = new Image()
-            
-            img.onload = () => {
-              try {
-                // 确保canvas尺寸与图像匹配
-                if (canvas.width !== img.width || canvas.height !== img.height) {
-                  console.log(`调整canvas尺寸为 ${img.width}x${img.height}`)
-                  canvas.width = img.width
-                  canvas.height = img.height
-                }
-                
-                // 绘制图像到canvas
-                const ctx = canvas.getContext('2d')
-                ctx.clearRect(0, 0, canvas.width, canvas.height)
-                ctx.drawImage(img, 0, 0)
-                
-                // 释放Blob URL
-                URL.revokeObjectURL(url)
-                
-                // 将帧数据对象添加到缓冲区
-                const frameData = {
-                  image: img,
-                  timestamp: Date.now()
-                }
-                
-                // 将帧添加到缓冲区
-                if (frameBuffers.value[index]) {
-                  // 如果缓冲区已达最大大小，移除最老的帧
-                  if (frameBuffers.value[index].length >= bufferSize) {
-                    frameBuffers.value[index].shift()
-                  }
-                  
-                  // 添加新帧
-                  frameBuffers.value[index].push(frameData)
-                }
-                
-                videoFrames.value[index].isPlaying = true
-              } catch (error) {
-                // 避免频繁报错
-                if (Math.random() < 0.01) {
-                  console.error('处理MJPEG帧失败:', error)
-                }
-              }
-            }
-            
-            img.onerror = (error) => {
-              if (Math.random() < 0.01) {
-                console.error('加载JPEG图像失败:', error)
-              }
-            }
-            
-            // 开始加载图像
-            img.src = url
-          }
-        } catch (error) {
-          // 避免频繁报错
-          if (Math.random() < 0.01) {
-            console.error('视频帧处理失败:', error)
-          }
-        }
-      }
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket错误:', error)
-      }
-      
-      ws.onclose = (event) => {
-        console.log('WebSocket连接已关闭', event.code, event.reason)
-        if (videoFrames.value[index]) {
-          videoFrames.value[index].isPlaying = false
-        }
-        
-        // 清理渲染定时器
-        if (renderTimers.value[index]) {
-          clearInterval(renderTimers.value[index])
-          renderTimers.value[index] = null
-        }
-        
-        // 清理缓冲区
-        if (frameBuffers.value[index]) {
-          frameBuffers.value[index] = []
-        }
-        
-        // 清理连接
-        if (wsConnections.value[index] === ws) {
-          wsConnections.value[index] = null
-        }
-        
-        // 如果连接意外关闭，尝试重新连接
-        if (event.code !== 1000) {
-          console.log('连接意外关闭，尝试重新连接...')
-          setTimeout(() => {
-            if (videoFrames.value && videoFrames.value[index]) {
-              startVideo(index)
-            }
-          }, 3000)
-        }
-      }
-      
-      wsConnections.value[index] = ws
-    })
   } else {
     // 播放本地视频
-    const video = videoRefs.value[index]
+    const video = videoRefs.value[en_name]
     if (video) {
       console.log('开始播放本地视频')
       video.play().catch(error => {
@@ -483,28 +511,98 @@ const startVideo = (index) => {
   }
 }
 
-// 定期检查所有视频流状态
-const startStreamMonitoring = () => {
-  setInterval(() => {
-    videoFrames.value.forEach((frame, index) => {
-      if (frame.isRtsp) {
-        checkStreamStatus(index)
+// 停止视频流
+const stopVideo = (en_name) => {
+  console.log(`停止视频流 ${en_name}`)
+  cleanupRTC(en_name)
+  connectionStates.value[en_name] = '已断开'
+}
+
+// 修改 cleanupRTC 方法
+const cleanupRTC = (en_name) => {
+  console.log(`开始清理视频 ${en_name} 的WebRTC连接`)
+  const pc = wsConnections.value[en_name]
+  if (pc) {
+    console.log('清理RTCPeerConnection:', {
+      connectionState: pc.connectionState,
+      iceConnectionState: pc.iceConnectionState,
+      signalingState: pc.signalingState
+    })
+    
+    // 保存流信息
+    const stream = pc.getRemoteStreams()[0]
+    
+    pc.getSenders().forEach(sender => {
+      if (sender.track) {
+        console.log('停止发送器轨道:', {
+          kind: sender.track.kind,
+          id: sender.track.id
+        })
+        sender.track.stop()
       }
     })
-  }, 5000)  // 每5秒检查一次
+    
+    pc.getReceivers().forEach(receiver => {
+      if (receiver.track) {
+        console.log('停止接收器轨道:', {
+          kind: receiver.track.kind,
+          id: receiver.track.id
+        })
+        receiver.track.stop()
+      }
+    })
+    
+    pc.onicecandidate = null
+    pc.ontrack = null
+    pc.onconnectionstatechange = null
+    pc.close()
+    wsConnections.value[en_name] = null
+    console.log(`RTCPeerConnection已清理`)
+  }
+  
+  if (videoRefs.value[en_name]) {
+    console.log('清理视频元素')
+    videoRefs.value[en_name].srcObject = null
+  }
+  
+  const frame = videoFrames.value.find(f => f.en_name === en_name)
+  if (frame) {
+    frame.isPlaying = false
+  }
+  isConnected.value[en_name] = false
+  isLoading.value[en_name] = false
+  console.log(`视频 ${en_name} 清理完成`)
 }
 
-const onVideoPlay = (index) => {
-  videoFrames.value[index].isPlaying = true
+const onVideoPlay = (en_name) => {
+  console.log(`视频 ${en_name} 开始播放`)
+  const frame = videoFrames.value.find(f => f.en_name === en_name)
+  if (frame) {
+    frame.isPlaying = true
+  }
 }
 
-const onVideoPause = (index) => {
-  videoFrames.value[index].isPlaying = false
+const onVideoPause = (en_name) => {
+  console.log(`视频 ${en_name} 暂停播放`)
+  const frame = videoFrames.value.find(f => f.en_name === en_name)
+  if (frame) {
+    frame.isPlaying = false
+  }
 }
 
-const onVideoError = (index) => {
-  console.error(`视频 ${index + 1} 加载失败`)
-  videoFrames.value[index].isPlaying = false
+const onVideoError = (en_name) => {
+  const video = videoRefs.value[en_name]
+  console.error(`视频 ${en_name} 加载失败`, {
+    error: video?.error,
+    readyState: video?.readyState,
+    networkState: video?.networkState,
+    srcObject: video?.srcObject,
+    connectionState: connectionStates.value[en_name]
+  })
+  const frame = videoFrames.value.find(f => f.en_name === en_name)
+  if (frame) {
+    frame.isPlaying = false
+  }
 }
 
 // 清理函数
@@ -514,27 +612,20 @@ const cleanup = () => {
     if (video) {
       video.pause()
       video.src = ''
+      video.srcObject = null
     }
   })
   
-  // 清理渲染定时器
-  Object.values(renderTimers.value).forEach((timer, index) => {
-    if (timer) {
-      clearInterval(timer)
-      renderTimers.value[index] = null
+  // 清理WebRTC连接
+  Object.values(wsConnections.value).forEach(pc => {
+    if (pc) {
+      pc.close()
     }
   })
   
-  // 清理缓冲区
+  // 清理其他资源
   Object.keys(frameBuffers.value).forEach(key => {
     frameBuffers.value[key] = []
-  })
-  
-  // 清理WebSocket连接
-  Object.values(wsConnections.value).forEach(ws => {
-    if (ws) {
-      ws.close()
-    }
   })
 }
 
@@ -555,6 +646,33 @@ const canvasStyle = {
   objectFit: 'contain'
 }
 
+// 添加最大化处理方法
+const handleMaximize = (en_name) => {
+  const video = videoRefs.value[en_name]
+  if (video) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      video.requestFullscreen()
+    }
+  }
+}
+
+// 添加重连调度函数
+const scheduleRetry = (en_name) => {
+  if (retryTimers.value[en_name]) {
+    clearTimeout(retryTimers.value[en_name])
+  }
+
+  retryCounts.value[en_name] = (retryCounts.value[en_name] || 0) + 1
+  console.log(`视频 ${en_name} 第 ${retryCounts.value[en_name]} 次重试`)
+
+  retryTimers.value[en_name] = setTimeout(() => {
+    console.log(`开始重试视频 ${en_name}`)
+    startVideo(en_name)
+  }, retryInterval)
+}
+
 onMounted(() => {
   // 清空引用
   videoRefs.value = {}
@@ -562,15 +680,24 @@ onMounted(() => {
   wsConnections.value = {}
   frameBuffers.value = {}
   renderTimers.value = {}
+  retryTimers.value = {}
+  retryCounts.value = {}
   
   // 初始化
   fetchVideoUrls()
-  startStreamMonitoring()
 })
 
 onUnmounted(() => {
   stopVideoCarousel()
-  cleanup()
+  // 清理所有WebRTC连接
+  Object.keys(wsConnections.value).forEach(en_name => {
+    cleanupRTC(en_name)
+    // 清理重试定时器
+    if (retryTimers.value[en_name]) {
+      clearTimeout(retryTimers.value[en_name])
+      retryTimers.value[en_name] = null
+    }
+  })
 })
 </script>
 
@@ -701,5 +828,78 @@ onUnmounted(() => {
 .page-arrow img {
   width: 24px;
   height: 24px;
+}
+
+.video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-container:hover .video-controls {
+  opacity: 1;
+}
+
+.control-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.left-controls, .right-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.control-button {
+  background-color: rgba(14, 228, 249, 0.15);
+  border: 1px solid rgba(14, 228, 249, 0.5);
+  color: #0EE4F9;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(14, 228, 249, 0.2);
+}
+
+.control-button:hover {
+  background-color: rgba(14, 228, 249, 0.25);
+  border-color: rgba(14, 228, 249, 0.8);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(14, 228, 249, 0.3);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.control-button i {
+  font-size: 16px;
+}
+
+.control-button.maximize {
+  background-color: rgba(14, 228, 249, 0.1);
+}
+
+.control-button.maximize:hover {
+  background-color: rgba(14, 228, 249, 0.2);
 }
 </style> 
