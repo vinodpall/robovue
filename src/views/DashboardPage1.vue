@@ -612,9 +612,10 @@ const initCharts = () => {
       itemHeight: 6,
       itemGap: 12,
       textStyle: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 6,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textShadow: '0 0 2px rgba(0,0,0,0.8)'
       }
     },
     xAxis: {
@@ -881,9 +882,10 @@ const updateDataTypeChart = () => {
       itemHeight: 6,
       itemGap: 12,
       textStyle: {
-        color: '#fff',
-        fontSize: 6,
-        fontWeight: 'bold'
+        color: '#FFFFFF',
+        fontSize: 7,
+        fontWeight: 'bold',
+        textShadow: '0 0 2px rgba(0,0,0,0.8)'
       }
     },
     xAxis: {
