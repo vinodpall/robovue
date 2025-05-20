@@ -773,14 +773,15 @@ const updateBarChart = () => {
         interval: 0,
         fontSize: 6,
         margin: 12,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textShadow: '0 0 2px rgba(0,0,0,0.8)'
       },
       axisTick: {
         show: false
       },
       axisLine: {
         lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
+          color: 'rgba(255,255,255,0.8)'
         }
       }
     },
@@ -788,30 +789,33 @@ const updateBarChart = () => {
       type: 'value',
       name: '受训机器人数量（台）',
       nameLocation: 'middle',
-      nameGap: 30,
+      nameGap: 25,
       nameRotate: 90,
       nameTextStyle: {
         color: '#FFFFFF',
         fontSize: 9,
         fontWeight: 'bold',
-        padding: [0, 0, 0, -15]
+        padding: [0, 0, 0, -15],
+        textShadow: '0 0 2px rgba(0,0,0,0.8)'
       },
-      max: 300,
-      interval: 50,
+      min: 0,
+      max: 12,
+      interval: 2,
       axisLabel: {
         color: '#FFFFFF',
         fontSize: 10,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textShadow: '0 0 2px rgba(0,0,0,0.8)'
       },
       splitLine: {
         lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
+          color: 'rgba(255,255,255,0.8)'
         }
       },
       axisLine: {
         show: true,
         lineStyle: {
-          color: 'rgba(255,255,255,0.4)'
+          color: 'rgba(255,255,255,0.8)'
         }
       }
     },
@@ -820,7 +824,7 @@ const updateBarChart = () => {
       type: 'bar',
       barWidth: '35%',
       data: trainingFieldsData.value.map((item, index) => ({
-        value: item.robot_count + 250 - (index * 20),
+        value: item.robot_count,
         itemStyle: {
           color: `rgba(${73 + index * 5}, ${143 + index * 5}, ${225 + index * 5}, 1)`
         }
@@ -831,7 +835,8 @@ const updateBarChart = () => {
         color: '#FFFFFF',
         fontSize: 10,
         fontWeight: 'bold',
-        formatter: '{c}台'
+        formatter: '{c}台',
+        textShadow: '0 0 3px rgba(0,0,0,0.8)'
       },
       itemStyle: {
         borderRadius: [4, 4, 0, 0]

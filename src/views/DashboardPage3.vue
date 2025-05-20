@@ -19,7 +19,6 @@
             autoplay
             playsinline
             muted
-            controlsList="nofullscreen"
             @play="onVideoPlay(frame.en_name)"
             @pause="onVideoPause(frame.en_name)"
             @error="onVideoError(frame.en_name)"
@@ -40,7 +39,6 @@
             :controls="frame.showControls"
             :autoplay="frame.autoplay"
             :muted="frame.muted"
-            controlsList="nofullscreen"
             loop
             @play="onVideoPlay(frame.en_name)"
             @pause="onVideoPause(frame.en_name)"

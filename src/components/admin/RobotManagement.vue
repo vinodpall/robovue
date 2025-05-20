@@ -1,5 +1,11 @@
 <template>
   <div class="robot-management">
+    <!-- 添加全屏加载动画 -->
+    <div v-if="loading" class="global-loading">
+      <el-icon class="loading-icon"><Loading /></el-icon>
+      <span class="loading-text">正在批量添加机器人，请稍候...</span>
+    </div>
+
     <!-- 筛选区域 -->
     <div class="filter-section">
       <el-form :inline="true" :model="filterForm" class="filter-form">
@@ -51,6 +57,9 @@
         <div class="left-buttons">
           <el-button type="primary" @click="showAddDialog">
             <el-icon><Plus /></el-icon>新增机器人
+          </el-button>
+          <el-button type="success" @click="showBatchAddDialog">
+            <el-icon><Plus /></el-icon>批量添加
           </el-button>
         </div>
         <div class="right-buttons">
@@ -370,13 +379,149 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 批量添加对话框 -->
+    <el-dialog
+      title="批量添加机器人"
+      v-model="batchDialogVisible"
+      width="1000px"
+      class="robot-dialog"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="batchForm" label-width="120px" class="robot-form">
+        <div class="form-columns">
+          <div class="form-column left-column">
+            <el-form-item label="机器人名称" required>
+              <el-input v-model="batchForm.robot.name" placeholder="请输入机器人名称" />
+            </el-form-item>
+            <el-form-item label="机器人型号" required>
+              <el-input v-model="batchForm.robot.serial_number" placeholder="请输入机器人型号" />
+            </el-form-item>
+            <el-form-item label="企业" required>
+              <el-select v-model="batchForm.robot.company_id" placeholder="请选择企业" style="width: 100%">
+                <el-option
+                  v-for="company in companyList"
+                  :key="company.id"
+                  :label="company.name"
+                  :value="company.id"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="机器人类型" required>
+              <el-select v-model="batchForm.robot.industry_type" placeholder="请选择机器人类型" style="width: 100%">
+                <el-option label="工业机器人" value="工业机器人" />
+                <el-option label="特种机器人" value="特种机器人" />
+                <el-option label="服务机器人" value="服务机器人" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="应用场景" required>
+              <el-select v-model="batchForm.robot.training_field_id" placeholder="请选择应用场景" style="width: 100%">
+                <el-option
+                  v-for="field in trainingFieldList"
+                  :key="field.id"
+                  :label="field.name"
+                  :value="field.id"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="状态" required>
+              <el-select v-model="batchForm.robot.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="在线" value="在线" />
+                <el-option label="离线" value="离线" />
+                <el-option label="故障" value="故障" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="技能" required>
+              <el-select v-model="batchForm.robot.skills" placeholder="请选择技能" style="width: 100%">
+                <el-option label="操作性能" value="操作性能" />
+                <el-option label="移动性能" value="移动性能" />
+                <el-option label="交互性能" value="交互性能" />
+                <el-option label="其他" value="其他" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="价格">
+              <el-input v-model="batchForm.robot.price" placeholder="请输入价格" />
+            </el-form-item>
+            <el-form-item label="产地">
+              <el-input v-model="batchForm.robot.product_location" placeholder="请输入产地" />
+            </el-form-item>
+          </div>
+          <div class="form-column right-column">
+            <el-form-item label="图片">
+              <el-upload
+                class="avatar-uploader"
+                :action="uploadAction"
+                :show-file-list="false"
+                :on-success="handleBatchImageSuccess"
+                :before-upload="beforeImageUpload"
+              >
+                <img v-if="batchForm.robot.image_url" :src="getImageUrl(batchForm.robot.image_url)" class="avatar" />
+                <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+              </el-upload>
+            </el-form-item>
+            <el-form-item label="参数">
+              <div class="parameter-input">
+                <el-input v-model="parameterInput" placeholder="请输入参数，如：高度：100x100x100" />
+                <el-button type="primary" @click="addBatchParameter">添加</el-button>
+              </div>
+              <div class="parameter-list">
+                <el-tag
+                  v-for="(param, index) in batchParameterList"
+                  :key="index"
+                  closable
+                  @close="removeBatchParameter(index)"
+                >
+                  {{ param }}
+                </el-tag>
+              </div>
+            </el-form-item>
+            <el-form-item label="荣誉">
+              <div class="parameter-input">
+                <el-input v-model="batchAwardInput" placeholder="请输入荣誉" />
+                <el-button type="primary" @click="addBatchAward">添加</el-button>
+              </div>
+              <div class="parameter-list">
+                <el-tag
+                  v-for="(award, index) in batchAwardList"
+                  :key="index"
+                  closable
+                  @close="removeBatchAward(index)"
+                >
+                  {{ award }}
+                </el-tag>
+              </div>
+            </el-form-item>
+            <el-form-item label="备注">
+              <el-input v-model="batchForm.robot.remarks" placeholder="请输入备注" />
+            </el-form-item>
+            <el-form-item label="推荐理由">
+              <el-input
+                v-model="batchForm.robot.recommendation_reason"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入推荐理由"
+              />
+            </el-form-item>
+            <el-form-item label="添加数量" required>
+              <el-input-number v-model="batchForm.count" :min="1" :max="1000" style="width: 100%" />
+            </el-form-item>
+          </div>
+        </div>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="batchDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleBatchSubmit">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Upload } from '@element-plus/icons-vue'
+import { Plus, Upload, Loading } from '@element-plus/icons-vue'
 import api from '../../api'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
@@ -446,6 +591,32 @@ const dataCollectionRules = {
     { required: true, message: '请输入数量', trigger: 'blur' }
   ]
 }
+
+const batchDialogVisible = ref(false)
+const batchForm = ref({
+  robot: {
+    name: '',
+    industry_type: '',
+    company_id: '',
+    training_field_id: '',
+    skills: '',
+    status: '在线',
+    price: '',
+    serial_number: '',
+    product_location: '',
+    dimensions: '',
+    remarks: '',
+    awards: '',
+    recommendation_reason: '',
+    image_url: '',
+    is_carousel: false
+  },
+  count: 1
+})
+
+const batchParameterList = ref([])
+const batchAwardInput = ref('')
+const batchAwardList = ref([])
 
 // 获取上传地址
 const uploadAction = `${import.meta.env.VITE_API_BASE_URL}/api/upload/image`
@@ -855,6 +1026,89 @@ const formatCollectDate = (dateStr) => {
   const month = dateStr.substring(4, 6)
   const day = dateStr.substring(6, 8)
   return `${year}-${month}-${day}`
+}
+
+const showBatchAddDialog = () => {
+  batchForm.value = {
+    robot: {
+      name: '',
+      industry_type: '',
+      company_id: '',
+      training_field_id: '',
+      skills: '',
+      status: '在线',
+      price: '',
+      serial_number: '',
+      product_location: '',
+      dimensions: '',
+      remarks: '',
+      awards: '',
+      recommendation_reason: '',
+      image_url: '',
+      is_carousel: false
+    },
+    count: 1
+  }
+  batchParameterList.value = []
+  batchAwardList.value = []
+  batchDialogVisible.value = true
+}
+
+const handleBatchImageSuccess = (response) => {
+  if (response && response.url) {
+    batchForm.value.robot.image_url = response.url
+    ElMessage.success('图片上传成功')
+  } else {
+    ElMessage.error('图片上传失败：未获取到图片URL')
+  }
+}
+
+const handleBatchSubmit = async () => {
+  try {
+    const { count, robot } = batchForm.value
+    loading.value = true  // 显示加载动画
+    await api.post(`/robots/batch?count=${count}`, robot, {
+      timeout: 30000  // 设置30秒超时
+    })
+    ElMessage.success('批量添加成功')
+    batchDialogVisible.value = false
+    fetchRobotList()
+  } catch (error) {
+    console.error('批量添加失败:', error)
+    if (error.code === 'ECONNABORTED') {
+      ElMessage.error('请求超时，请稍后重试')
+    } else {
+      ElMessage.error('批量添加失败')
+    }
+  } finally {
+    loading.value = false  // 隐藏加载动画
+  }
+}
+
+const addBatchParameter = () => {
+  if (parameterInput.value.trim()) {
+    batchParameterList.value.push(parameterInput.value.trim())
+    batchForm.value.robot.dimensions = batchParameterList.value.join(';')
+    parameterInput.value = ''
+  }
+}
+
+const removeBatchParameter = (index) => {
+  batchParameterList.value.splice(index, 1)
+  batchForm.value.robot.dimensions = batchParameterList.value.join(';')
+}
+
+const addBatchAward = () => {
+  if (batchAwardInput.value.trim()) {
+    batchAwardList.value.push(batchAwardInput.value.trim())
+    batchForm.value.robot.awards = batchAwardList.value.join(';')
+    batchAwardInput.value = ''
+  }
+}
+
+const removeBatchAward = (index) => {
+  batchAwardList.value.splice(index, 1)
+  batchForm.value.robot.awards = batchAwardList.value.join(';')
 }
 </script>
 
@@ -1460,5 +1714,40 @@ const formatCollectDate = (dateStr) => {
 
 .data-records::-webkit-scrollbar-track {
   background-color: #f5f7fa;
+}
+
+.global-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loading-icon {
+  font-size: 40px;
+  color: #409EFF;
+  animation: rotating 2s linear infinite;
+}
+
+.loading-text {
+  margin-top: 16px;
+  font-size: 16px;
+  color: #409EFF;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style> 
